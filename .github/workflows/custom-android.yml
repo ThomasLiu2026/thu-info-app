@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - custom-v3.16.4-seal
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build-android:
