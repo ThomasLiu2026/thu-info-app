@@ -2,6 +2,9 @@ name: Build Custom THUInfo Android
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - custom-v3.16.4-seal
 
 jobs:
   build-android:
