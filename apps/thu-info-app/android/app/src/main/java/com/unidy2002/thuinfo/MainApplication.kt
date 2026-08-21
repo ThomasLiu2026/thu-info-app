@@ -23,8 +23,6 @@ class MainApplication : Application(), ReactApplication {
     override fun onCreate() {
         super.onCreate()
         loadReactNative(this)
-        preventRoot()
         preventEmulator()
-        verifySignature()
     }
 }
