@@ -43,3 +43,5 @@ jobs:
           name: THUInfo-v3.16.4-custom-source
           path: THUInfo_v3.16.4_custom_source.apk
           compression-level: 0
+
+# Custom source build for personal installation.
