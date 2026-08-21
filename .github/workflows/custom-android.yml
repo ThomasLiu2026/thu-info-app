@@ -29,6 +29,44 @@ jobs:
       - name: Install dependencies
         run: yarn
 
+      - name: Generate crisp legacy launcher icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
+
+          curl -L --fail --retry 3 \
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Tsinghua_University_Logo.svg/960px-Tsinghua_University_Logo.svg.png' \
+            -o /tmp/tsinghua-logo.png
+
+          # Keep the source alpha channel, recolor the seal itself to white.
+          convert /tmp/tsinghua-logo.png \
+            -channel RGB -fill white -colorize 100 +channel \
+            /tmp/tsinghua-logo-white.png
+
+          RES='apps/thu-info-app/android/app/src/main/res'
+
+          # Force Android to use the density-specific pre-rendered PNGs below.
+          # This avoids the traced adaptive-vector path that looked soft on-device.
+          rm -f "$RES/mipmap-anydpi-v26/ic_launcher.xml" \
+                "$RES/mipmap-anydpi-v26/ic_launcher_round.xml"
+
+          for spec in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            density="${spec%%:*}"
+            size="${spec##*:}"
+            emblem=$(( size * 66 / 100 ))
+            dir="$RES/mipmap-$density"
+            mkdir -p "$dir"
+
+            convert -size "${size}x${size}" xc:'#660974' \
+              \( /tmp/tsinghua-logo-white.png -filter Lanczos -resize "${emblem}x${emblem}" -unsharp 0x0.65+0.65+0.008 \) \
+              -gravity center -composite \
+              "$dir/ic_launcher.png"
+
+            cp "$dir/ic_launcher.png" "$dir/ic_launcher_round.png"
+          done
+
       - name: Build clean release APK
         run: |
           cd apps/thu-info-app/android
