@@ -1,10 +1,19 @@
-import {ReactElement, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
+	ReactElement,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import {
+	BackHandler,
 	FlatList,
 	Modal,
 	RefreshControl,
 	SectionList,
 	Text,
+	TextInput,
 	TouchableOpacity,
 	useColorScheme,
 	View,
@@ -15,7 +24,12 @@ import {getStr} from "../../utils/i18n";
 import themes from "../../assets/themes/themes";
 import {styles} from "../../ui/settings/settings";
 import {helper, State} from "../../redux/store";
-import {setMerchantCategoryOverride} from "../../redux/slices/campusCard";
+import {
+	addOtherSubcategory,
+	removeOtherSubcategory,
+	setMerchantCategoryOverride,
+	setOtherMerchantSubcategory,
+} from "../../redux/slices/campusCard";
 import {
 	CardTransaction,
 	CardTransactionType,
@@ -48,7 +62,9 @@ import {
 	classifyExpenditureByKeywords,
 	EXPENDITURE_CATEGORIES,
 	ExpenditureCategory,
+	MealPeriod,
 	prepareMonthlyTransactions,
+	ShowerSubCategory,
 } from "../../utils/expenditureAnalysis";
 import type {RootStackParamList} from "../../components/Root";
 
@@ -61,7 +77,7 @@ const getTransactionIcon = (tx: CardTransaction, iconSize = 32): ReactElement =>
 		return <IconBankCard height={iconSize} width={iconSize} />;
 	} else if (tx.name?.includes("天猫")) {
 		return <IconShopping height={iconSize} width={iconSize} />;
-	} else if (tx.name?.includes("淋浴")) {
+	} else if (tx.name?.includes("淋浴") || tx.name?.includes("洗漱")) {
 		return <IconShower height={iconSize} width={iconSize} />;
 	} else if (tx.name?.includes("香锅")) {
 		return <IconPot height={iconSize} width={iconSize} />;
@@ -108,6 +124,20 @@ const getCategoryLabel = (category: ExpenditureCategory): string => {
 			return getStr("catOther");
 	}
 };
+
+const getMealLabel = (meal: MealPeriod): string => {
+	switch (meal) {
+		case "breakfast":
+			return getStr("mealBreakfast");
+		case "lunch":
+			return getStr("mealLunch");
+		case "dinner":
+			return getStr("mealDinner");
+	}
+};
+
+const getShowerSubLabel = (sub: ShowerSubCategory): string =>
+	sub === "foot" ? getStr("subShowerFoot") : getStr("subShowerBath");
 
 const TransactionItem = ({tx}: {tx: CardTransaction}) => {
 	const themeName = useColorScheme();
@@ -156,7 +186,15 @@ interface TxByMonth {
 	data: CardTransaction[];
 }
 
+type ActiveSubFilter =
+	| {type: "shower"; sub: ShowerSubCategory}
+	| {type: "meal"; meal: MealPeriod}
+	| {type: "canteen"; canteen: string}
+	| {type: "otherSub"; sub: string}
+	| undefined;
+
 const MIN_YEAR = 2023;
+const EMPTY_SUBCATEGORIES: string[] = [];
 
 const ymKey = (year: number, month: number) =>
 	`${year}-${String(month).padStart(2, "0")}`;
@@ -170,6 +208,12 @@ export const ExpenditureScreen = ({
 	const darkModeConfig = useSelector((s: State) => s.config.darkMode);
 	const overrides = useSelector(
 		(s: State) => s.campusCard.merchantCategoryOverrides,
+	);
+	const otherSubcategories = useSelector(
+		(s: State) => s.campusCard.otherSubcategories ?? EMPTY_SUBCATEGORIES,
+	);
+	const otherMerchantSubcategories = useSelector(
+		(s: State) => s.campusCard.otherMerchantSubcategories,
 	);
 
 	const today = dayjs();
@@ -197,9 +241,16 @@ export const ExpenditureScreen = ({
 		year: currentYear,
 		month: currentMonth,
 	});
-	const [selectedCategory, setSelectedCategory] = useState<
-		"all" | ExpenditureCategory
-	>("all");
+
+	// null = Bill Analysis Home (shows ONLY the 4 top-level categories, zero subcategories).
+	// Non-null = Drill-down into that parent category, revealing its subcategories.
+	const [selectedCategory, setSelectedCategory] =
+		useState<ExpenditureCategory | null>(null);
+	const [subFilter, setSubFilter] = useState<ActiveSubFilter>(undefined);
+
+	const [addingOtherSub, setAddingOtherSub] = useState(false);
+	const [newOtherSubName, setNewOtherSubName] = useState("");
+
 	const [editingItem, setEditingItem] = useState<
 		CategorizedTransaction | undefined
 	>(undefined);
@@ -216,6 +267,19 @@ export const ExpenditureScreen = ({
 	const categoryColors = isDark
 		? CATEGORY_PALETTE_DARK
 		: CATEGORY_PALETTE_LIGHT;
+
+	useEffect(() => {
+		if (activeTab !== "analysis" || selectedCategory === null) {
+			return;
+		}
+		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+			setSelectedCategory(null);
+			setSubFilter(undefined);
+			setAddingOtherSub(false);
+			return true;
+		});
+		return () => sub.remove();
+	}, [activeTab, selectedCategory]);
 
 	const years = useMemo(
 		() =>
@@ -303,17 +367,58 @@ export const ExpenditureScreen = ({
 			analyzeMonthlyExpenditure(
 				currentAnalysisMonth?.data ?? [],
 				overrides,
+				otherSubcategories,
+				otherMerchantSubcategories,
+				getStr("otherCanteen"),
 			),
-		[currentAnalysisMonth, overrides],
+		[
+			currentAnalysisMonth,
+			overrides,
+			otherSubcategories,
+			otherMerchantSubcategories,
+		],
 	);
 
-	const filteredItems = useMemo(
+	const activeParentStat = useMemo(
 		() =>
-			selectedCategory === "all"
-				? analysis.items
-				: analysis.items.filter((item) => item.category === selectedCategory),
-		[analysis.items, selectedCategory],
+			selectedCategory
+				? analysis.categories.find((c) => c.category === selectedCategory)
+				: undefined,
+		[analysis.categories, selectedCategory],
 	);
+
+	const filteredItems = useMemo(() => {
+		if (selectedCategory === null) {
+			return analysis.items;
+		}
+		const parentItems = analysis.items.filter(
+			(item) => item.category === selectedCategory,
+		);
+		if (!subFilter) {
+			return parentItems;
+		}
+		switch (subFilter.type) {
+			case "shower":
+				return parentItems.filter(
+					(item) => item.showerSubCategory === subFilter.sub,
+				);
+			case "meal":
+				return parentItems.filter(
+					(item) => item.mealPeriod === subFilter.meal,
+				);
+			case "canteen":
+				return parentItems.filter(
+					(item) => item.canteen === subFilter.canteen,
+				);
+			case "otherSub":
+				if (subFilter.sub === "__uncategorized__") {
+					return parentItems.filter((item) => !item.otherSubCategory);
+				}
+				return parentItems.filter(
+					(item) => item.otherSubCategory === subFilter.sub,
+				);
+		}
+	}, [analysis.items, selectedCategory, subFilter]);
 
 	const nonZeroCategories = useMemo(
 		() => analysis.categories.filter((c) => c.amount > 0),
@@ -328,6 +433,7 @@ export const ExpenditureScreen = ({
 		(analysisYm.year === currentYear && analysisYm.month < currentMonth);
 
 	const stepAnalysisMonth = (delta: -1 | 1) => {
+		setSubFilter(undefined);
 		setAnalysisYm((prev) => {
 			let nextYear = prev.year;
 			let nextMonth = prev.month + delta;
@@ -382,6 +488,173 @@ export const ExpenditureScreen = ({
 			/>
 		</View>
 	);
+
+	const renderMonthSelectorRow = () => (
+		<View
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				justifyContent: "space-between",
+			}}>
+			<TouchableOpacity
+				disabled={!canGoPrevMonth}
+				hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+				style={{
+					padding: 4,
+					opacity: canGoPrevMonth ? 1 : 0.3,
+				}}
+				onPress={() => stepAnalysisMonth(-1)}>
+				<IconLeft width={20} height={20} />
+			</TouchableOpacity>
+			<BottomPopupTriggerView
+				style={{
+					flexDirection: "row",
+					alignItems: "center",
+					paddingHorizontal: 8,
+					paddingVertical: 4,
+				}}
+				popupTitle={`${popupYear} 年 ${popupMonth} 月`}
+				popupOnTriggered={() => {
+					setPopupYear(analysisYm.year);
+					setPopupMonth(analysisYm.month);
+				}}
+				popupContent={renderMonthWheelContent(
+					analysisYm.year,
+					analysisYm.month,
+				)}
+				popupCanFulfill={true}
+				popupOnFulfilled={() => {
+					setSubFilter(undefined);
+					setAnalysisYm({year: popupYear, month: popupMonth});
+					fetchMonth(popupYear, popupMonth);
+				}}
+				popupOnCancelled={() => {}}>
+				<Text
+					style={{
+						color: colors.text,
+						fontSize: 16,
+						fontWeight: "600",
+					}}>
+					{analysisYm.year} 年 {analysisYm.month} 月
+				</Text>
+				<IconDown height={18} width={18} />
+			</BottomPopupTriggerView>
+			<TouchableOpacity
+				disabled={!canGoNextMonth}
+				hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+				style={{
+					padding: 4,
+					opacity: canGoNextMonth ? 1 : 0.3,
+				}}
+				onPress={() => stepAnalysisMonth(1)}>
+				<IconRight width={20} height={20} />
+			</TouchableOpacity>
+		</View>
+	);
+
+	const renderSubStatRow = ({
+		rowKey,
+		label,
+		count,
+		percentage,
+		amount,
+		accentColor,
+		selected,
+		onPress,
+		onDelete,
+	}: {
+		rowKey: string;
+		label: string;
+		count: number;
+		percentage: number;
+		amount: number;
+		accentColor: string;
+		selected: boolean;
+		onPress: () => void;
+		onDelete?: () => void;
+	}) => (
+		<TouchableOpacity
+			key={rowKey}
+			style={{
+				flexDirection: "row",
+				alignItems: "center",
+				paddingVertical: 10,
+				paddingHorizontal: 8,
+				borderRadius: 8,
+				backgroundColor: selected ? colors.themeBackground : "transparent",
+			}}
+			onPress={onPress}>
+			<View
+				style={{
+					width: 8,
+					height: 8,
+					borderRadius: 2,
+					backgroundColor: accentColor,
+					marginRight: 10,
+				}}
+			/>
+			<Text
+				style={{
+					flex: 1,
+					color: colors.text,
+					fontSize: 14,
+					fontWeight: selected ? "600" : "400",
+				}}
+				numberOfLines={1}>
+				{label}
+			</Text>
+			<Text
+				style={{
+					color: colors.fontB2,
+					fontSize: 12,
+					marginRight: 10,
+					fontVariant: ["tabular-nums"],
+				}}>
+				{count} {getStr("txCountUnit")}
+			</Text>
+			<Text
+				style={{
+					color: colors.fontB2,
+					fontSize: 12,
+					width: 50,
+					textAlign: "right",
+					marginRight: 8,
+					fontVariant: ["tabular-nums"],
+				}}>
+				{percentage.toFixed(1)}%
+			</Text>
+			<Text
+				style={{
+					color: colors.text,
+					fontSize: 14,
+					fontWeight: "600",
+					minWidth: 70,
+					textAlign: "right",
+					fontVariant: ["tabular-nums"],
+				}}>
+				￥{amount.toFixed(2)}
+			</Text>
+			{onDelete && (
+				<TouchableOpacity
+					hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+					style={{marginLeft: 10, paddingHorizontal: 4}}
+					onPress={onDelete}>
+					<Text style={{color: colors.statusWarning, fontSize: 12}}>
+						{getStr("delete")}
+					</Text>
+				</TouchableOpacity>
+			)}
+		</TouchableOpacity>
+	);
+
+	const submitNewOtherSubcategory = () => {
+		const trimmed = newOtherSubName.trim();
+		if (trimmed) {
+			dispatch(addOtherSubcategory(trimmed));
+		}
+		setNewOtherSubName("");
+		setAddingOtherSub(false);
+	};
 
 	return (
 		<View style={{flex: 1, backgroundColor: colors.themeBackground}}>
@@ -535,136 +808,71 @@ export const ExpenditureScreen = ({
 						/>
 					}
 					ListHeaderComponent={
-						<View>
-							<RoundedView
-								style={{
-									marginHorizontal: 12,
-									marginTop: 12,
-									paddingHorizontal: 16,
-								}}>
-								{/* Natural Month Selector */}
-								<View
+						selectedCategory === null ? (
+							/* Bill Analysis Home: ONLY the 4 top-level categories, ZERO subcategories */
+							<View>
+								<RoundedView
 									style={{
-										flexDirection: "row",
-										alignItems: "center",
-										justifyContent: "space-between",
+										marginHorizontal: 12,
+										marginTop: 12,
+										paddingHorizontal: 16,
 									}}>
-									<TouchableOpacity
-										disabled={!canGoPrevMonth}
-										hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-										style={{
-											padding: 4,
-											opacity: canGoPrevMonth ? 1 : 0.3,
-										}}
-										onPress={() => stepAnalysisMonth(-1)}>
-										<IconLeft width={20} height={20} />
-									</TouchableOpacity>
-									<BottomPopupTriggerView
-										style={{
-											flexDirection: "row",
-											alignItems: "center",
-											paddingHorizontal: 8,
-											paddingVertical: 4,
-										}}
-										popupTitle={`${popupYear} 年 ${popupMonth} 月`}
-										popupOnTriggered={() => {
-											setPopupYear(analysisYm.year);
-											setPopupMonth(analysisYm.month);
-										}}
-										popupContent={renderMonthWheelContent(
-											analysisYm.year,
-											analysisYm.month,
-										)}
-										popupCanFulfill={true}
-										popupOnFulfilled={() => {
-											setAnalysisYm({year: popupYear, month: popupMonth});
-											fetchMonth(popupYear, popupMonth);
-										}}
-										popupOnCancelled={() => {}}>
+									{renderMonthSelectorRow()}
+
+									<View style={{alignItems: "center", marginVertical: 14}}>
+										<Text style={{color: colors.fontB2, fontSize: 12}}>
+											{getStr("monthlyOutgo")}
+										</Text>
 										<Text
 											style={{
 												color: colors.text,
-												fontSize: 16,
-												fontWeight: "600",
+												fontSize: 30,
+												fontWeight: "bold",
+												marginTop: 4,
 											}}>
-											{analysisYm.year} 年 {analysisYm.month} 月
+											￥{analysis.totalExpenditure.toFixed(2)}
 										</Text>
-										<IconDown height={18} width={18} />
-									</BottomPopupTriggerView>
-									<TouchableOpacity
-										disabled={!canGoNextMonth}
-										hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-										style={{
-											padding: 4,
-											opacity: canGoNextMonth ? 1 : 0.3,
-										}}
-										onPress={() => stepAnalysisMonth(1)}>
-										<IconRight width={20} height={20} />
-									</TouchableOpacity>
-								</View>
-
-								{/* Headline Monthly Expenditure */}
-								<View style={{alignItems: "center", marginVertical: 14}}>
-									<Text style={{color: colors.fontB2, fontSize: 12}}>
-										{getStr("monthlyOutgo")}
-									</Text>
-									<Text
-										style={{
-											color: colors.text,
-											fontSize: 30,
-											fontWeight: "bold",
-											marginTop: 4,
-										}}>
-										￥{analysis.totalExpenditure.toFixed(2)}
-									</Text>
-									<Text
-										style={{
-											color: colors.fontB2,
-											fontSize: 12,
-											marginTop: 4,
-										}}>
-										{analysis.totalCount} {getStr("txCountUnit")}
-										{"  ·  "}
-										{getStr("income")} ￥
-										{(currentAnalysisMonth?.income ?? 0).toFixed(2)}
-									</Text>
-								</View>
-
-								{/* Part-to-whole Horizontal Stacked Bar (dataviz spec: <=24px thick, 4px radius, 2px surface gap) */}
-								<View
-									style={{
-										flexDirection: "row",
-										height: 14,
-										borderRadius: 4,
-										overflow: "hidden",
-										backgroundColor:
-											nonZeroCategories.length > 0
-												? colors.contentBackground
-												: colors.themeBackground,
-										marginBottom: 14,
-									}}>
-									{nonZeroCategories.map((c, idx) => (
-										<View
-											key={c.category}
+										<Text
 											style={{
-												flex: c.amount,
-												minWidth: 4,
-												marginLeft: idx > 0 ? 2 : 0,
-												backgroundColor: categoryColors[c.category],
-												opacity:
-													selectedCategory === "all" ||
-													selectedCategory === c.category
-														? 1
-														: 0.28,
-											}}
-										/>
-									))}
-								</View>
+												color: colors.fontB2,
+												fontSize: 12,
+												marginTop: 4,
+											}}>
+											{analysis.totalCount} {getStr("txCountUnit")}
+											{"  ·  "}
+											{getStr("income")} ￥
+											{(currentAnalysisMonth?.income ?? 0).toFixed(2)}
+										</Text>
+									</View>
 
-								{/* 4-Category Breakdown Rows (Table-view twin + Filter) */}
-								{analysis.categories.map((stat, idx) => {
-									const isSelected = selectedCategory === stat.category;
-									return (
+									{/* Part-to-whole Horizontal Stacked Bar */}
+									<View
+										style={{
+											flexDirection: "row",
+											height: 14,
+											borderRadius: 4,
+											overflow: "hidden",
+											backgroundColor:
+												nonZeroCategories.length > 0
+													? colors.contentBackground
+													: colors.themeBackground,
+											marginBottom: 14,
+										}}>
+										{nonZeroCategories.map((c, idx) => (
+											<View
+												key={c.category}
+												style={{
+													flex: c.amount,
+													minWidth: 4,
+													marginLeft: idx > 0 ? 2 : 0,
+													backgroundColor: categoryColors[c.category],
+												}}
+											/>
+										))}
+									</View>
+
+									{/* 4 Top-Level Parent Rows */}
+									{analysis.categories.map((stat, idx) => (
 										<View key={stat.category}>
 											{idx > 0 && (
 												<View
@@ -679,18 +887,14 @@ export const ExpenditureScreen = ({
 												style={{
 													flexDirection: "row",
 													alignItems: "center",
-													paddingVertical: 10,
-													paddingHorizontal: 8,
-													borderRadius: 8,
-													backgroundColor: isSelected
-														? colors.themeBackground
-														: "transparent",
+													paddingVertical: 11,
+													paddingHorizontal: 6,
 												}}
-												onPress={() =>
-													setSelectedCategory((prev) =>
-														prev === stat.category ? "all" : stat.category,
-													)
-												}>
+												onPress={() => {
+													setSelectedCategory(stat.category);
+													setSubFilter(undefined);
+													setAddingOtherSub(false);
+												}}>
 												<View
 													style={{
 														width: 10,
@@ -708,7 +912,7 @@ export const ExpenditureScreen = ({
 														style={{
 															color: colors.text,
 															fontSize: 15,
-															fontWeight: isSelected ? "600" : "500",
+															fontWeight: "500",
 														}}>
 														{getCategoryLabel(stat.category)}
 													</Text>
@@ -717,7 +921,7 @@ export const ExpenditureScreen = ({
 													style={{
 														color: colors.fontB2,
 														fontSize: 12,
-														marginRight: 12,
+														marginRight: 10,
 														fontVariant: ["tabular-nums"],
 													}}>
 													{stat.count} {getStr("txCountUnit")}
@@ -726,9 +930,9 @@ export const ExpenditureScreen = ({
 													style={{
 														color: colors.fontB2,
 														fontSize: 13,
-														width: 54,
+														width: 52,
 														textAlign: "right",
-														marginRight: 10,
+														marginRight: 8,
 														fontVariant: ["tabular-nums"],
 													}}>
 													{stat.percentage.toFixed(1)}%
@@ -738,38 +942,32 @@ export const ExpenditureScreen = ({
 														color: colors.text,
 														fontSize: 15,
 														fontWeight: "600",
-														minWidth: 76,
+														minWidth: 74,
 														textAlign: "right",
+														marginRight: 4,
 														fontVariant: ["tabular-nums"],
 													}}>
 													￥{stat.amount.toFixed(2)}
 												</Text>
+												<IconRight width={16} height={16} />
 											</TouchableOpacity>
 										</View>
-									);
-								})}
-							</RoundedView>
+									))}
+								</RoundedView>
 
-							{/* Details Section Header */}
-							<View
-								style={{
-									marginHorizontal: 16,
-									marginTop: 18,
-									marginBottom: 8,
-									flexDirection: "row",
-									alignItems: "center",
-									justifyContent: "space-between",
-								}}>
-								<View>
+								<View
+									style={{
+										marginHorizontal: 16,
+										marginTop: 18,
+										marginBottom: 8,
+									}}>
 									<Text
 										style={{
 											color: colors.text,
 											fontSize: 15,
 											fontWeight: "600",
 										}}>
-										{selectedCategory === "all"
-											? getStr("allExpenditureDetails")
-											: `${getCategoryLabel(selectedCategory)}${getStr("categoryDetailsSuffix")}`}
+										{getStr("allExpenditureDetails")}
 										{` (${filteredItems.length})`}
 									</Text>
 									<Text
@@ -781,22 +979,427 @@ export const ExpenditureScreen = ({
 										{getStr("tapToChangeCategoryHint")}
 									</Text>
 								</View>
-								{selectedCategory !== "all" && (
+							</View>
+						) : (
+							/* Parent Category Drill-down View: Subcategories appear ONLY here */
+							<View>
+								<RoundedView
+									style={{
+										marginHorizontal: 12,
+										marginTop: 12,
+										paddingHorizontal: 16,
+									}}>
 									<TouchableOpacity
-										onPress={() => setSelectedCategory("all")}
-										style={{paddingVertical: 4, paddingHorizontal: 8}}>
+										style={{
+											flexDirection: "row",
+											alignItems: "center",
+											alignSelf: "flex-start",
+											paddingVertical: 2,
+											marginBottom: 8,
+										}}
+										onPress={() => {
+											setSelectedCategory(null);
+											setSubFilter(undefined);
+											setAddingOtherSub(false);
+										}}>
+										<IconLeft width={18} height={18} />
 										<Text
 											style={{
 												color: colors.themePurple,
-												fontSize: 13,
+												fontSize: 14,
 												fontWeight: "500",
+												marginLeft: 2,
 											}}>
-											{getStr("showAll")}
+											{getStr("backToBillOverview")}
 										</Text>
 									</TouchableOpacity>
-								)}
+
+									{renderMonthSelectorRow()}
+
+									{/* Focused Parent Headline */}
+									<View style={{alignItems: "center", marginVertical: 12}}>
+										<View
+											style={{
+												flexDirection: "row",
+												alignItems: "center",
+											}}>
+											<View
+												style={{
+													width: 10,
+													height: 10,
+													borderRadius: 3,
+													backgroundColor: categoryColors[selectedCategory],
+													marginRight: 6,
+												}}
+											/>
+											<Text
+												style={{
+													color: colors.fontB1,
+													fontSize: 14,
+													fontWeight: "600",
+												}}>
+												{getCategoryLabel(selectedCategory)}
+											</Text>
+										</View>
+										<Text
+											style={{
+												color: colors.text,
+												fontSize: 28,
+												fontWeight: "bold",
+												marginTop: 4,
+											}}>
+											￥{(activeParentStat?.amount ?? 0).toFixed(2)}
+										</Text>
+										<Text
+											style={{
+												color: colors.fontB2,
+												fontSize: 12,
+												marginTop: 4,
+											}}>
+											{activeParentStat?.count ?? 0} {getStr("txCountUnit")}
+											{"  ·  "}
+											{(activeParentStat?.percentage ?? 0).toFixed(1)}%
+										</Text>
+									</View>
+
+									{/* Washing ("洗漱") Subcategories: Shower (>0.16) & Foot Wash (<=0.16) */}
+									{selectedCategory === "shower" && (
+										<View style={{marginTop: 4}}>
+											<Text
+												style={{
+													color: colors.fontB3,
+													fontSize: 11,
+													marginBottom: 8,
+													marginLeft: 4,
+												}}>
+												{getStr("showerRuleHint")}
+											</Text>
+											{analysis.showerSubCategories.map((subStat, idx) => (
+												<View key={subStat.key}>
+													{idx > 0 && (
+														<View
+															style={{
+																height: 0.5,
+																backgroundColor: colors.themeGrey,
+																marginVertical: 2,
+															}}
+														/>
+													)}
+													{renderSubStatRow({
+														rowKey: subStat.key,
+														label: getShowerSubLabel(subStat.key),
+														count: subStat.count,
+														percentage: subStat.percentage,
+														amount: subStat.amount,
+														accentColor: categoryColors.shower,
+														selected:
+															subFilter?.type === "shower" &&
+															subFilter.sub === subStat.key,
+														onPress: () =>
+															setSubFilter((prev) =>
+																prev?.type === "shower" &&
+																prev.sub === subStat.key
+																	? undefined
+																	: {type: "shower", sub: subStat.key},
+															),
+													})}
+												</View>
+											))}
+										</View>
+									)}
+
+									{/* Dining ("饮食") Subcategories: By Meal + By Canteen */}
+									{selectedCategory === "dining" && (
+										<View style={{marginTop: 4}}>
+											<Text
+												style={{
+													color: colors.fontB2,
+													fontSize: 13,
+													fontWeight: "600",
+													marginBottom: 4,
+													marginLeft: 4,
+												}}>
+												{getStr("diningByMeal")}
+											</Text>
+											{analysis.diningMeals.map((mealStat, idx) => (
+												<View key={mealStat.key}>
+													{idx > 0 && (
+														<View
+															style={{
+																height: 0.5,
+																backgroundColor: colors.themeGrey,
+																marginVertical: 2,
+															}}
+														/>
+													)}
+													{renderSubStatRow({
+														rowKey: mealStat.key,
+														label: getMealLabel(mealStat.key),
+														count: mealStat.count,
+														percentage: mealStat.percentage,
+														amount: mealStat.amount,
+														accentColor: categoryColors.dining,
+														selected:
+															subFilter?.type === "meal" &&
+															subFilter.meal === mealStat.key,
+														onPress: () =>
+															setSubFilter((prev) =>
+																prev?.type === "meal" &&
+																prev.meal === mealStat.key
+																	? undefined
+																	: {type: "meal", meal: mealStat.key},
+															),
+													})}
+												</View>
+											))}
+
+											<Text
+												style={{
+													color: colors.fontB2,
+													fontSize: 13,
+													fontWeight: "600",
+													marginTop: 14,
+													marginBottom: 4,
+													marginLeft: 4,
+												}}>
+												{getStr("diningByCanteen")}
+											</Text>
+											{analysis.diningCanteens.length === 0 ? (
+												<Text
+													style={{
+														color: colors.fontB3,
+														fontSize: 13,
+														paddingVertical: 8,
+														marginLeft: 4,
+													}}>
+													{getStr("noData")}
+												</Text>
+											) : (
+												analysis.diningCanteens.map((canteenStat, idx) => (
+													<View key={canteenStat.key}>
+														{idx > 0 && (
+															<View
+																style={{
+																	height: 0.5,
+																	backgroundColor: colors.themeGrey,
+																	marginVertical: 2,
+																}}
+															/>
+														)}
+														{renderSubStatRow({
+															rowKey: canteenStat.key,
+															label: canteenStat.key,
+															count: canteenStat.count,
+															percentage: canteenStat.percentage,
+															amount: canteenStat.amount,
+															accentColor: categoryColors.dining,
+															selected:
+																subFilter?.type === "canteen" &&
+																subFilter.canteen === canteenStat.key,
+															onPress: () =>
+																setSubFilter((prev) =>
+																	prev?.type === "canteen" &&
+																	prev.canteen === canteenStat.key
+																		? undefined
+																		: {
+																				type: "canteen",
+																				canteen: canteenStat.key,
+																		  },
+																),
+														})}
+													</View>
+												))
+											)}
+										</View>
+									)}
+
+									{/* Other ("其他") Subcategories: User-Customizable Add / Delete */}
+									{selectedCategory === "other" && (
+										<View style={{marginTop: 4}}>
+											<View
+												style={{
+													flexDirection: "row",
+													alignItems: "center",
+													justifyContent: "space-between",
+													marginBottom: 6,
+													marginHorizontal: 4,
+												}}>
+												<Text
+													style={{
+														color: colors.fontB2,
+														fontSize: 13,
+														fontWeight: "600",
+													}}>
+													{getStr("customSubcategories")}
+												</Text>
+												<TouchableOpacity
+													onPress={() => setAddingOtherSub((v) => !v)}
+													style={{paddingVertical: 2, paddingHorizontal: 4}}>
+													<Text
+														style={{
+															color: colors.themePurple,
+															fontSize: 13,
+															fontWeight: "500",
+														}}>
+														+ {getStr("addSubcategory")}
+													</Text>
+												</TouchableOpacity>
+											</View>
+
+											{addingOtherSub && (
+												<View
+													style={{
+														flexDirection: "row",
+														alignItems: "center",
+														marginBottom: 8,
+														paddingHorizontal: 4,
+													}}>
+													<TextInput
+														value={newOtherSubName}
+														onChangeText={setNewOtherSubName}
+														placeholder={getStr("enterSubcategoryName")}
+														placeholderTextColor={colors.fontB3}
+														onSubmitEditing={submitNewOtherSubcategory}
+														style={{
+															flex: 1,
+															borderWidth: 1,
+															borderColor: colors.inputBorder,
+															borderRadius: 6,
+															paddingHorizontal: 10,
+															paddingVertical: 6,
+															fontSize: 14,
+															color: colors.text,
+															marginRight: 8,
+														}}
+													/>
+													<TouchableOpacity
+														onPress={submitNewOtherSubcategory}
+														style={{
+															backgroundColor: colors.themePurple,
+															paddingHorizontal: 12,
+															paddingVertical: 7,
+															borderRadius: 6,
+														}}>
+														<Text
+															style={{
+																color: "#FFFFFF",
+																fontSize: 13,
+																fontWeight: "500",
+															}}>
+															{getStr("add")}
+														</Text>
+													</TouchableOpacity>
+												</View>
+											)}
+
+											{analysis.otherSubCategoryStats.length === 0 ? (
+												<Text
+													style={{
+														color: colors.fontB3,
+														fontSize: 12,
+														paddingVertical: 8,
+														marginLeft: 4,
+													}}>
+													{getStr("noCustomSubcategories")}
+												</Text>
+											) : (
+												analysis.otherSubCategoryStats.map((subStat, idx) => (
+													<View key={subStat.key}>
+														{idx > 0 && (
+															<View
+																style={{
+																	height: 0.5,
+																	backgroundColor: colors.themeGrey,
+																	marginVertical: 2,
+																}}
+															/>
+														)}
+														{renderSubStatRow({
+															rowKey: subStat.key,
+															label: subStat.isUncategorized
+																? getStr("uncategorizedOther")
+																: subStat.key,
+															count: subStat.count,
+															percentage: subStat.percentage,
+															amount: subStat.amount,
+															accentColor: categoryColors.other,
+															selected:
+																subFilter?.type === "otherSub" &&
+																subFilter.sub === subStat.key,
+															onPress: () =>
+																setSubFilter((prev) =>
+																	prev?.type === "otherSub" &&
+																	prev.sub === subStat.key
+																		? undefined
+																		: {type: "otherSub", sub: subStat.key},
+																),
+															onDelete: subStat.isUncategorized
+																? undefined
+																: () => {
+																		if (
+																			subFilter?.type === "otherSub" &&
+																			subFilter.sub === subStat.key
+																		) {
+																			setSubFilter(undefined);
+																		}
+																		dispatch(
+																			removeOtherSubcategory(subStat.key),
+																		);
+																  },
+														})}
+													</View>
+												))
+											)}
+										</View>
+									)}
+								</RoundedView>
+
+								{/* Filtered Details Section Header inside Parent Drill-down */}
+								<View
+									style={{
+										marginHorizontal: 16,
+										marginTop: 18,
+										marginBottom: 8,
+										flexDirection: "row",
+										alignItems: "center",
+										justifyContent: "space-between",
+									}}>
+									<View>
+										<Text
+											style={{
+												color: colors.text,
+												fontSize: 15,
+												fontWeight: "600",
+											}}>
+											{`${getCategoryLabel(selectedCategory)}${getStr("categoryDetailsSuffix")}`}
+											{` (${filteredItems.length})`}
+										</Text>
+										<Text
+											style={{
+												color: colors.fontB3,
+												fontSize: 11,
+												marginTop: 2,
+											}}>
+											{getStr("tapToChangeCategoryHint")}
+										</Text>
+									</View>
+									{subFilter !== undefined && (
+										<TouchableOpacity
+											onPress={() => setSubFilter(undefined)}
+											style={{paddingVertical: 4, paddingHorizontal: 8}}>
+											<Text
+												style={{
+													color: colors.themePurple,
+													fontSize: 13,
+													fontWeight: "500",
+												}}>
+												{getStr("showAll")}
+											</Text>
+										</TouchableOpacity>
+									)}
+								</View>
 							</View>
-						</View>
+						)
 					}
 					ListEmptyComponent={
 						<RoundedView
@@ -816,6 +1419,17 @@ export const ExpenditureScreen = ({
 					renderItem={({item, index}) => {
 						const isFirst = index === 0;
 						const isLast = index === filteredItems.length - 1;
+						let detailBadge = getCategoryLabel(item.category);
+						if (selectedCategory !== null) {
+							if (item.category === "shower" && item.showerSubCategory) {
+								detailBadge = getShowerSubLabel(item.showerSubCategory);
+							} else if (item.category === "dining" && item.canteen) {
+								detailBadge = `${item.canteen}${item.mealPeriod ? ` · ${getMealLabel(item.mealPeriod)}` : ""}`;
+							} else if (item.category === "other") {
+								detailBadge =
+									item.otherSubCategory ?? getStr("uncategorizedOther");
+							}
+						}
 						return (
 							<View
 								style={{
@@ -876,7 +1490,7 @@ export const ExpenditureScreen = ({
 													}}
 												/>
 												<Text style={{fontSize: 11, color: colors.fontB2}}>
-													{getCategoryLabel(item.category)}
+													{detailBadge}
 													{item.isOverridden
 														? ` · ${getStr("customClassified")}`
 														: ""}
@@ -999,6 +1613,14 @@ export const ExpenditureScreen = ({
 															category: cat === autoCat ? undefined : cat,
 														}),
 													);
+													if (cat !== "other") {
+														dispatch(
+															setOtherMerchantSubcategory({
+																merchant: editingItem.merchant,
+																subCategory: undefined,
+															}),
+														);
+													}
 												}
 												setEditingItem(undefined);
 											}}>
@@ -1029,7 +1651,67 @@ export const ExpenditureScreen = ({
 								);
 							})}
 
-							{editingItem.isOverridden && (
+							{/* Custom Subcategory Chips for "Other" when available */}
+							{otherSubcategories.length > 0 && (
+								<View
+									style={{
+										flexDirection: "row",
+										flexWrap: "wrap",
+										marginTop: 6,
+									}}>
+									{otherSubcategories.map((sub) => {
+										const subActive =
+											editingItem.category === "other" &&
+											editingItem.otherSubCategory === sub;
+										return (
+											<TouchableOpacity
+												key={sub}
+												style={{
+													paddingHorizontal: 10,
+													paddingVertical: 5,
+													borderRadius: 6,
+													marginRight: 8,
+													marginTop: 6,
+													backgroundColor: subActive
+														? colors.themePurple
+														: colors.themeBackground,
+												}}
+												onPress={() => {
+													if (editingItem.merchant) {
+														const autoCat = classifyExpenditureByKeywords(
+															editingItem.tx,
+														);
+														dispatch(
+															setMerchantCategoryOverride({
+																merchant: editingItem.merchant,
+																category:
+																	autoCat === "other" ? undefined : "other",
+															}),
+														);
+														dispatch(
+															setOtherMerchantSubcategory({
+																merchant: editingItem.merchant,
+																subCategory: subActive ? undefined : sub,
+															}),
+														);
+													}
+													setEditingItem(undefined);
+												}}>
+												<Text
+													style={{
+														color: subActive ? "#FFFFFF" : colors.fontB1,
+														fontSize: 12,
+													}}>
+													{`${getStr("catOther")} · ${sub}`}
+												</Text>
+											</TouchableOpacity>
+										);
+									})}
+								</View>
+							)}
+
+							{(editingItem.isOverridden ||
+								editingItem.otherSubCategory !== undefined) && (
 								<TouchableOpacity
 									style={{
 										marginTop: 12,
@@ -1044,6 +1726,12 @@ export const ExpenditureScreen = ({
 												setMerchantCategoryOverride({
 													merchant: editingItem.merchant,
 													category: undefined,
+												}),
+											);
+											dispatch(
+												setOtherMerchantSubcategory({
+													merchant: editingItem.merchant,
+													subCategory: undefined,
 												}),
 											);
 										}
