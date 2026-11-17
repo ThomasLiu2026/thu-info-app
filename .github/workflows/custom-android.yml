@@ -48,6 +48,7 @@ jobs:
 
       - name: Run app lint and unit tests
         run: |
+          yarn workspace @thu-info/lib lint
           yarn workspace @thu-info/app lint
           yarn workspace @thu-info/app test
 

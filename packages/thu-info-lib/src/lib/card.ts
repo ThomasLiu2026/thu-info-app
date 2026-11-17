@@ -27,6 +27,52 @@ const accountBaseInfo = {
     cardId: "",
 };
 
+// Hermes strictly rejects non-ISO SQL timestamps like "YYYY-MM-DD HH:mm:ss" in `new Date(...)` (returning Invalid Date).
+// Construct local Date via numeric components so timestamps remain valid across Hermes, JSC, and V8.
+export const parseCardTimestamp = (raw: unknown): Date => {
+    if (raw instanceof Date) {
+        return raw;
+    }
+    if (typeof raw === "number") {
+        return new Date(raw);
+    }
+    if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if (/^\d{10,13}$/.test(trimmed)) {
+            const num = Number(trimmed);
+            return new Date(trimmed.length === 10 ? num * 1000 : num);
+        }
+        // If explicit ISO timezone (Z or +/-HH:mm) is present, delegate to standard ISO parser
+        if (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed)) {
+            return new Date(trimmed);
+        }
+        const m = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\.\d+)?)?$/.exec(trimmed);
+        if (m) {
+            return new Date(
+                Number(m[1]),
+                Number(m[2]) - 1,
+                Number(m[3]),
+                m[4] ? Number(m[4]) : 0,
+                m[5] ? Number(m[5]) : 0,
+                m[6] ? Number(m[6]) : 0,
+            );
+        }
+        const compact = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(trimmed);
+        if (compact) {
+            return new Date(
+                Number(compact[1]),
+                Number(compact[2]) - 1,
+                Number(compact[3]),
+                Number(compact[4]),
+                Number(compact[5]),
+                Number(compact[6]),
+            );
+        }
+        return new Date(trimmed);
+    }
+    return new Date(NaN);
+};
+
 const fetchWithParse = async (url: string, jsonStruct: any = {}) => {
     const response = await uFetch(url, JSON.stringify(jsonStruct) as any, undefined, undefined, true, CONTENT_TYPE_JSON);
     const {data, success, resultData} = JSON.parse(response);
@@ -84,12 +130,12 @@ export const cardGetInfo = async (helper: InfoHelper): Promise<CardInfo> => {
         photoFileName: rawInfoStruct.photofile,
         phoneNumber: rawInfoStruct.tel,
         userGender: rawInfoStruct.sex,
-        effectiveTimestamp: new Date(rawInfoStruct.identifyeffectdate),
-        validTimestamp: new Date(rawInfoStruct.validatevalue),
+        effectiveTimestamp: parseCardTimestamp(rawInfoStruct.identifyeffectdate),
+        validTimestamp: parseCardTimestamp(rawInfoStruct.validatevalue),
         balance: rawInfoStruct.baseAccount.balance / 100,
         cardId: rawInfoStruct.cardInfos[0].cardid,
         cardStatus: rawInfoStruct.cardInfos[0].accstatus,
-        lastTransactionTimestamp: new Date(rawInfoStruct.cardInfos[0].lasttxdate),
+        lastTransactionTimestamp: parseCardTimestamp(rawInfoStruct.cardInfos[0].lasttxdate),
         maxDailyTransactionAmount: rawInfoStruct.cardInfos[0].maxconstolamt / 100,
         maxOneTimeTransactionAmount: rawInfoStruct.cardInfos[0].maxconsamt / 100,
     };
@@ -124,7 +170,7 @@ export const cardGetTransactions = async (
     return rawTransactionsData.rows.map((rawTransaction: any) => ({
         id: rawTransaction.id,
         summary: rawTransaction.summary,
-        timestamp: new Date(rawTransaction.txdate),
+        timestamp: parseCardTimestamp(rawTransaction.txdate),
         balance: rawTransaction.balance / 100,
         amount: rawTransaction.txamt / 100,
         address: rawTransaction.meraddr,

@@ -105,6 +105,43 @@ export const normalizeMerchantName = (tx: CardTransaction): string => {
 	return raw.replace(/_/g, "/").trim();
 };
 
+export const normalizePayeeForMerge = (merchant: string): string =>
+	merchant
+		.replace(/[/_\-—－\s]+/g, "/")
+		.replace(/(?:\/)?(?:\d{1,2}号机|POS\d+|终端\d+|[#＃]\d+)$/i, "")
+		.trim();
+
+export const parseSafeTimestamp = (timestamp: Date | string | number): Date => {
+	if (timestamp instanceof Date && !Number.isNaN(timestamp.getTime())) {
+		return timestamp;
+	}
+	if (typeof timestamp === "number") {
+		return new Date(timestamp);
+	}
+	if (typeof timestamp === "string") {
+		const trimmed = timestamp.trim();
+		if (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed)) {
+			return new Date(trimmed);
+		}
+		const m =
+			/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?(?:\.\d+)?)?$/.exec(
+				trimmed,
+			);
+		if (m) {
+			return new Date(
+				Number(m[1]),
+				Number(m[2]) - 1,
+				Number(m[3]),
+				m[4] ? Number(m[4]) : 0,
+				m[5] ? Number(m[5]) : 0,
+				m[6] ? Number(m[6]) : 0,
+			);
+		}
+		return new Date(trimmed);
+	}
+	return timestamp instanceof Date ? timestamp : new Date(NaN);
+};
+
 export const extractCanteenName = (
 	tx: CardTransaction,
 	fallbackLabel = "其他食堂",
@@ -138,7 +175,7 @@ export const extractCanteenName = (
 };
 
 export const getMealPeriod = (timestamp: Date | string | number): MealPeriod => {
-	const d = new Date(timestamp);
+	const d = parseSafeTimestamp(timestamp);
 	const totalMinutes = d.getHours() * 60 + d.getMinutes();
 	// 04:00 - 10:29 -> breakfast; 10:30 - 15:59 -> lunch; 16:00 - 03:59 -> dinner
 	if (totalMinutes >= 240 && totalMinutes < 630) {
@@ -346,9 +383,10 @@ export const analyzeMonthlyExpenditure = (
 			tx,
 			overrides,
 		);
-		const timeMs = new Date(tx.timestamp).getTime();
+		const parsedDate = parseSafeTimestamp(tx.timestamp);
+		const timeMs = parsedDate.getTime();
 		rawCandidates.push({
-			tx,
+			tx: {...tx, timestamp: parsedDate},
 			merchant,
 			category,
 			isOverridden,
@@ -360,7 +398,12 @@ export const analyzeMonthlyExpenditure = (
 	}
 
 	// Sort chronologically ascending so <= 30 min same-merchant dining/water swipes merge cleanly.
-	rawCandidates.sort((a, b) => a.startTimeMs - b.startTimeMs);
+	rawCandidates.sort((a, b) => {
+		if (Number.isNaN(a.startTimeMs) || Number.isNaN(b.startTimeMs)) {
+			return 0;
+		}
+		return a.startTimeMs - b.startTimeMs;
+	});
 
 	const mergedSessions: RawConsumptionSession[] = [];
 	const lastMergeableByKey = new Map<string, RawConsumptionSession>();
@@ -368,11 +411,17 @@ export const analyzeMonthlyExpenditure = (
 	for (const candidate of rawCandidates) {
 		const isMergeableCategory =
 			candidate.category === "dining" || candidate.category === "water";
-		if (isMergeableCategory && candidate.merchant) {
-			const mergeKey = `${candidate.category}::${candidate.merchant}`;
+		const payeeKey = normalizePayeeForMerge(candidate.merchant);
+		if (
+			isMergeableCategory &&
+			payeeKey &&
+			Number.isFinite(candidate.startTimeMs)
+		) {
+			const mergeKey = `${candidate.category}::${payeeKey}`;
 			const prevSession = lastMergeableByKey.get(mergeKey);
 			if (
 				prevSession &&
+				Number.isFinite(prevSession.lastTimeMs) &&
 				candidate.startTimeMs - prevSession.lastTimeMs <= MERGE_WINDOW_MS
 			) {
 				prevSession.absCents += candidate.absCents;
@@ -444,10 +493,14 @@ export const analyzeMonthlyExpenditure = (
 		items.push(item);
 	}
 
-	items.sort(
-		(a, b) =>
-			new Date(b.tx.timestamp).getTime() - new Date(a.tx.timestamp).getTime(),
-	);
+	items.sort((a, b) => {
+		const ta = parseSafeTimestamp(a.tx.timestamp).getTime();
+		const tb = parseSafeTimestamp(b.tx.timestamp).getTime();
+		if (Number.isNaN(ta) || Number.isNaN(tb)) {
+			return 0;
+		}
+		return tb - ta;
+	});
 
 	const categories: CategoryStat[] = EXPENDITURE_CATEGORIES.map((category) => ({
 		category,

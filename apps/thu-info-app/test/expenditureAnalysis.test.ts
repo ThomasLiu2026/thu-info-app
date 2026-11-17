@@ -186,4 +186,22 @@ describe("expenditureAnalysis", () => {
 		expect(mergedWater?.tx.amount).toBe(-0.5);
 		expect(mergedWater?.mergedCount).toBe(2);
 	});
+
+	test("parses SQL space-separated timestamp strings (Hermes-safe) and merges descending API rows", () => {
+		// Simulate card.tsinghua.edu.cn returning newest-first rows with "YYYY-MM-DD HH:mm:ss" timestamps
+		const raw = [
+			makeTx("2", "听涛园-陕西风味", 2.0, {
+				timestamp: "2026-11-17 12:08:15" as unknown as Date,
+			}),
+			makeTx("1", "听涛园-陕西风味", 12.0, {
+				timestamp: "2026-11-17 12:05:00" as unknown as Date,
+			}),
+		];
+		const prepared = prepareMonthlyTransactions(raw);
+		const analysis = analyzeMonthlyExpenditure(prepared.data);
+		expect(analysis.totalCount).toBe(1);
+		expect(analysis.totalExpenditure).toBe(14);
+		expect(analysis.items[0].mergedCount).toBe(2);
+		expect(analysis.items[0].mealPeriod).toBe("lunch");
+	});
 });
