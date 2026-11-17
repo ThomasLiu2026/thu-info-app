@@ -1,10 +1,20 @@
 name: Build Custom THUInfo Android
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - "custom-*"
   pull_request:
     branches:
       - master
+  workflow_dispatch:
+    inputs:
+      coexist_with_official:
+        description: "Use independent package ID (com.unidy2002.thuinfo.custom) to coexist alongside official THU Info"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build-android:
@@ -23,13 +33,87 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: custom-android-node-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            custom-android-node-${{ runner.os }}-
+
       - name: Install dependencies
         run: yarn
 
-      - name: Build clean release APK
+      - name: Run app lint and unit tests
         run: |
-          cd apps/thu-info-app/android
-          ./gradlew assembleRelease
+          yarn workspace @thu-info/app lint
+          yarn workspace @thu-info/app test
+
+      - name: Prepare CI build copy
+        shell: bash
+        env:
+          COEXIST_WITH_OFFICIAL: ${{ github.event.inputs.coexist_with_official != 'false' && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          BUILD_GRADLE="apps/thu-info-app/android/app/build.gradle"
+          MAIN_APP="apps/thu-info-app/android/app/src/main/java/com/unidy2002/thuinfo/MainApplication.kt"
+          STRINGS_XML="apps/thu-info-app/android/app/src/main/res/values/strings.xml"
+          DEBUG_KEYSTORE="apps/thu-info-app/android/app/debug.keystore"
+
+          test -s "$DEBUG_KEYSTORE"
+
+          # Sign release build with repository's debug.keystore in CI copy only
+          sed -i 's/signingConfigs\.release/signingConfigs.debug/g' "$BUILD_GRADLE"
+          grep -q 'signingConfig signingConfigs.debug' "$BUILD_GRADLE"
+          if grep -q 'signingConfigs\.release' "$BUILD_GRADLE"; then
+            echo "ERROR: signingConfigs.release is still referenced in $BUILD_GRADLE" >&2
+            exit 1
+          fi
+
+          # Skip official signature check in CI build copy only
+          sed -i '/verifySignature()/d' "$MAIN_APP"
+          if grep -q 'verifySignature' "$MAIN_APP"; then
+            echo "ERROR: verifySignature is still present in $MAIN_APP" >&2
+            exit 1
+          fi
+
+          # Use distinct applicationId & launcher label by default so the APK installs
+          # side-by-side without overwriting official THU Info user data
+          if [ "${COEXIST_WITH_OFFICIAL}" = "true" ]; then
+            sed -i 's/applicationId "com.unidy2002.thuinfo"/applicationId "com.unidy2002.thuinfo.custom"/' "$BUILD_GRADLE"
+            sed -i 's/<string name="app_name">THU Info<\/string>/<string name="app_name">THU Info Custom<\/string>/' "$STRINGS_XML"
+            grep -q 'applicationId "com.unidy2002.thuinfo.custom"' "$BUILD_GRADLE"
+            grep -q 'THU Info Custom' "$STRINGS_XML"
+          fi
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: custom-android-gradle-${{ runner.os }}-${{ hashFiles('apps/thu-info-app/android/**/*.gradle*', 'apps/thu-info-app/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            custom-android-gradle-${{ runner.os }}-
+
+      - name: Build clean release APK
+        working-directory: apps/thu-info-app/android
+        env:
+          SIGNATURE_DIGEST: ""
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Verify signed release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_PATH="apps/thu-info-app/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK_PATH"
+          APKSIGNER="$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools" -name apksigner 2>/dev/null | sort -V | tail -n 1 || true)"
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
+          fi
 
       - name: Rename APK
         run: cp apps/thu-info-app/android/app/build/outputs/apk/release/app-release.apk THUInfo_v3.16.4_custom_source.apk
