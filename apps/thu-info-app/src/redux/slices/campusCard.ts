@@ -1,5 +1,6 @@
 import {createSlice} from "@reduxjs/toolkit";
 import type {PayloadAction} from "@reduxjs/toolkit";
+import type {ExpenditureCategory} from "../../utils/expenditureAnalysis";
 
 export interface CampusCardState {
 	balance: number;
@@ -7,6 +8,7 @@ export interface CampusCardState {
 	paymentMethod: string;
 	todayRechargeAmount: number;
 	lastRechargeDate: string;
+	merchantCategoryOverrides?: Record<string, ExpenditureCategory>;
 }
 
 const initialState: CampusCardState = {
@@ -15,6 +17,7 @@ const initialState: CampusCardState = {
 	paymentMethod: "bank",
 	todayRechargeAmount: 0,
 	lastRechargeDate: "",
+	merchantCategoryOverrides: {},
 };
 
 export const defaultCampusCard = initialState;
@@ -41,10 +44,32 @@ export const campusCardSlice = createSlice({
 				state.lastRechargeDate = payload.date;
 			}
 		},
+		setMerchantCategoryOverride: (
+			state,
+			{
+				payload,
+			}: PayloadAction<{
+				merchant: string;
+				category: ExpenditureCategory | undefined;
+			}>,
+		) => {
+			if (!state.merchantCategoryOverrides) {
+				state.merchantCategoryOverrides = {};
+			}
+			if (payload.category === undefined) {
+				delete state.merchantCategoryOverrides[payload.merchant];
+			} else {
+				state.merchantCategoryOverrides[payload.merchant] = payload.category;
+			}
+		},
 	},
 });
 
-export const {setBalance, setPaymentMethod, updateRechargeAmount} =
-	campusCardSlice.actions;
+export const {
+	setBalance,
+	setPaymentMethod,
+	updateRechargeAmount,
+	setMerchantCategoryOverride,
+} = campusCardSlice.actions;
 
 export const campusCardReducer = campusCardSlice.reducer;

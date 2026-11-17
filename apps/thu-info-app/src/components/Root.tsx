@@ -252,7 +252,7 @@ type HomeStackParamList = {
 	Form: {name: string; url: string};
 	PhysicalExam: undefined;
 	Finance: undefined;
-	Expenditure: undefined;
+	Expenditure: {initialTab?: "list" | "analysis"} | undefined;
 	CampusCard: undefined;
 	LoseCard: undefined;
 	ClassroomList: undefined;

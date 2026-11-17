@@ -227,6 +227,66 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 							{dayjs(new Date(updatedAt)).format("YYYY-MM-DD HH:mm:ss")}
 						</Text>
 					</View>
+					<View
+						style={{
+							height: 1,
+							backgroundColor: colors.themeGrey,
+							marginHorizontal: 16,
+							marginTop: 12,
+						}}
+					/>
+					<View
+						style={{
+							flexDirection: "row",
+							alignItems: "center",
+							marginTop: 12,
+						}}>
+						<TouchableOpacity
+							style={{
+								flex: 1,
+								alignItems: "center",
+								justifyContent: "center",
+								paddingVertical: 4,
+							}}
+							onPress={() => {
+								navigation.navigate("Expenditure", {initialTab: "list"});
+							}}>
+							<Text
+								style={{
+									color: colors.fontB1,
+									fontSize: 14,
+									fontWeight: "500",
+								}}>
+								{getStr("expenditureList")}
+							</Text>
+						</TouchableOpacity>
+						<View
+							style={{
+								width: 1,
+								height: 18,
+								backgroundColor: colors.themeGrey,
+							}}
+						/>
+						<TouchableOpacity
+							style={{
+								flex: 1,
+								alignItems: "center",
+								justifyContent: "center",
+								paddingVertical: 4,
+							}}
+							onPress={() => {
+								navigation.navigate("Expenditure", {initialTab: "analysis"});
+							}}>
+							<Text
+								style={{
+									color: colors.themePurple,
+									fontSize: 14,
+									fontWeight: "600",
+								}}>
+								{getStr("billAnalysis")}
+							</Text>
+						</TouchableOpacity>
+					</View>
 				</RoundedView>
 				{!helper.mocked() && (
 					<View

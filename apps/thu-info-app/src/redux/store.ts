@@ -304,7 +304,9 @@ const persistConfig = {
 							: state.schedule,
 						top5: state.top5 ?? defaultTop5,
 						reservation: state.reservation ?? defaultReservation,
-						campusCard: state.campusCard ?? defaultCampusCard,
+						campusCard: state.campusCard
+							? {...defaultCampusCard, ...state.campusCard}
+							: defaultCampusCard,
 						timetable: state.timetable ?? defaultTimetable,
 						announcement: state.announcement ?? defaultAnnouncement,
 						deepseek: state.deepseek ?? defaultDeepseek,
