@@ -101,24 +101,15 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 					<View style={style.separator} />
 					<TouchableOpacity
 						style={style.touchable}
+						onPress={() => handleNavigate("HomeFunctionOrder")}>
+						<Text style={style.text}>{getStr("homeFunctionOrder")}</Text>
+						<IconRight height={20} width={20} />
+					</TouchableOpacity>
+					<View style={style.separator} />
+					<TouchableOpacity
+						style={style.touchable}
 						onPress={() => handleNavigate("General")}>
 						<Text style={style.text}>{getStr("general")}</Text>
-						<IconRight height={20} width={20} />
-					</TouchableOpacity>
-				</RoundedView>
-				{helper.userId === "" || helper.mocked() ? null : <RoundedView style={style.rounded}>
-					<TouchableOpacity
-						style={style.touchable}
-						onPress={() => handleNavigate("DeepSeekSettings")}>
-						<Text style={style.text}>{getStr("deepseek")}</Text>
-						<IconRight height={20} width={20} />
-					</TouchableOpacity>
-				</RoundedView>}
-				<RoundedView style={style.rounded}>
-					<TouchableOpacity
-						style={style.touchable}
-						onPress={() => handleNavigate("ScheduleSettings")}>
-						<Text style={style.text}>{getStr("schedule")}</Text>
 						<IconRight height={20} width={20} />
 					</TouchableOpacity>
 				</RoundedView>

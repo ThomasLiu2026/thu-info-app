@@ -1,7 +1,6 @@
 import {
 	Alert,
 	BackHandler,
-	Linking,
 	Platform,
 	ScrollView,
 	Text,
@@ -12,448 +11,62 @@ import {
 import {ReactElement, useEffect, useState} from "react";
 import {RootNav, RootStackParamList} from "../../components/Root";
 import IconReport from "../../assets/icons/IconReport";
-import {HomeIcon} from "../../components/home/icon";
 import IconExpenditure from "../../assets/icons/IconExpenditure";
-import IconFinance from "../../assets/icons/IconFinance";
 import IconClassroom from "../../assets/icons/IconClassroom";
 import IconEvaluation from "../../assets/icons/IconEvaluation";
 import IconLibrary from "../../assets/icons/IconLibrary";
 import zh from "../../assets/translations/zh";
-import {getLocale, getStr} from "../../utils/i18n";
+import {getStr} from "../../utils/i18n";
 import themedStyles from "../../utils/themedStyles";
 import IconWasher from "../../assets/icons/IconWasher";
 import IconWater from "../../assets/icons/IconWater";
 import IconSports from "../../assets/icons/IconSports";
-import IconBook from "../../assets/icons/IconBook";
 import IconBankPayment from "../../assets/icons/IconBankPayment";
 import IconInvoice from "../../assets/icons/IconInvoice";
 import IconIncome from "../../assets/icons/IconIncome";
 import IconEleRecharge from "../../assets/icons/IconEleRecharge";
 import IconLibRoom from "../../assets/icons/IconLibRoom";
+import IconCr from "../../assets/icons/IconCr";
+import IconNetworkDetail from "../../assets/icons/IconNetworkDetail";
+import IconNetworkOnlineDevices from "../../assets/icons/IconNetworkOnlineDevices";
+import IconCalendar from "../../assets/icons/IconCalendar";
+import IconRight from "../../assets/icons/IconRight";
 import themes from "../../assets/themes/themes";
 import {useDispatch, useSelector} from "react-redux";
 import {currState, helper, State} from "../../redux/store";
 import {top5Update} from "../../redux/slices/top5";
-import IconDormScore from "../../assets/icons/IconDormScore";
-import {
-	Schedule,
-	ScheduleType,
-	getWeekFromTime,
-} from "@thu-info/lib/src/models/schedule/schedule";
-import dayjs from "dayjs";
-import md5 from "md5";
-import {ScheduleDetailProps} from "../schedule/scheduleDetail";
 import {LibraryReservationCard} from "./library";
 import {
 	setActiveLibBookRecord,
 	setActiveSportsReservationRecord,
 } from "../../redux/slices/reservation";
-import IconDorm from "../../assets/icons/IconDorm";
-import IconCr from "../../assets/icons/IconCr";
-import IconLocal from "../../assets/icons/IconLocal";
-import IconReserve from "../../assets/icons/IconReserve";
-import IconPhysicalExam from "../../assets/icons/IconPhysicalExam";
 import {configSet} from "../../redux/slices/config";
 import {addUsageStat, FunctionType} from "../../utils/webApi";
-import {StackActions, useNavigation} from "@react-navigation/native";
+import {StackActions} from "@react-navigation/native";
 import {setCrTimetable} from "../../redux/slices/timetable";
 import {getStatusBarHeight} from "react-native-safearea-height";
 import {
 	toggleReadStatus,
 	updateAnnouncements,
 } from "../../redux/slices/announcement";
-import IconNetwork from "../../assets/icons/IconNetwork";
-import IconNetworkDetail from "../../assets/icons/IconNetworkDetail";
-import IconNetworkOnlineDevices from "../../assets/icons/IconNetworkOnlineDevices";
-import IconCalendar from "../../assets/icons/IconCalendar";
 import {setBalance} from "../../redux/slices/campusCard";
 import {gt} from "semver";
 import VersionNumber from "react-native-version-number";
 import Svg, {Path} from "react-native-svg";
 import {InfoHelper} from "@thu-info/lib";
 import useDetailNavigator from "../../utils/useDetailNavigator";
+import {RoundedView} from "../../components/views";
+import {styles as settingsStyles} from "../settings/settings";
+import dayjs from "dayjs";
+import {
+	getVisibleHomeFunctions,
+	HomeFunction,
+	ManagedHomeFunction,
+} from "../../utils/homeOrder";
 
-const iconSize = 40;
+export type {HomeFunction, ManagedHomeFunction};
 
-export const HomeFunctionSection = ({
-	title,
-	children,
-}: {
-	title: keyof typeof zh;
-	children: any;
-}) => {
-	const themeName = useColorScheme();
-	const style = styles(themeName);
-
-	return (
-		<View style={style.SectionContainer}>
-			<Text style={style.SectionTitle}>{getStr(title)}</Text>
-			<View style={style.SectionContentContainer}>
-				<View
-					style={style.functionSectionContent}
-					testID={"homeFunctions-" + title}>
-					{children}
-				</View>
-			</View>
-		</View>
-	);
-};
-
-interface ScheduleViewModel {
-	name: string;
-	location: string;
-	from: string;
-	to: string;
-	color: string;
-	navProps?: ScheduleDetailProps;
-}
-
-const HomeSchedule = ({schedule}: {schedule: ScheduleViewModel}) => {
-	const themeName = useColorScheme();
-	const theme = themes(themeName);
-	const navigation = useNavigation<RootNav>();
-	const detailNavigator = useDetailNavigator();
-	return (
-		<TouchableOpacity
-			disabled={schedule.navProps === undefined}
-			onPress={() => {
-				if (!schedule.navProps) {
-					return;
-				}
-				if (detailNavigator) {
-					detailNavigator.dispatch(
-						StackActions.replace("ScheduleDetail", {
-							...schedule.navProps,
-							disableAnimation: true,
-						}),
-					);
-				} else {
-					navigation.navigate("ScheduleDetail", schedule.navProps);
-				}
-			}}>
-			<View
-				style={{
-					backgroundColor: theme.colors.themeGrey,
-					height: 1,
-					marginVertical: 4,
-					marginLeft: 12,
-				}}
-			/>
-			<View style={{flexDirection: "row"}}>
-				<View
-					style={{
-						width: 4,
-						backgroundColor: schedule.color,
-						height: 50,
-						borderRadius: 4,
-					}}
-				/>
-				<View style={{marginLeft: 8, flex: 1, flexDirection: "column"}}>
-					<View style={{flex: 1, flexDirection: "row-reverse"}}>
-						<Text
-							style={{
-								alignSelf: "center",
-								textAlign: "right",
-								color: theme.colors.fontB0,
-								fontFamily: getLocale() === zh ? "monospace" : "",
-							}}>
-							{schedule.from}
-						</Text>
-						<View style={{flex: 1}}>
-							<Text
-								style={{
-									position: "absolute",
-									alignSelf: "center",
-									left: 0,
-									right: 0,
-									fontWeight: "bold",
-									fontSize: 16,
-									color: theme.colors.fontB0,
-								}}
-								numberOfLines={1}>
-								{schedule.name}
-							</Text>
-						</View>
-					</View>
-					<View style={{flex: 1, flexDirection: "row-reverse"}}>
-						<Text
-							style={{
-								alignSelf: "center",
-								textAlign: "right",
-								color: theme.colors.fontB2,
-								fontFamily: getLocale() === zh ? "monospace" : "",
-							}}>
-							{schedule.to}
-						</Text>
-						<View style={{flex: 1}}>
-							<Text
-								style={{
-									position: "absolute",
-									alignSelf: "center",
-									left: 0,
-									right: 0,
-									fontWeight: "bold",
-									color: theme.colors.fontB2,
-								}}
-								numberOfLines={1}>
-								{schedule.location}
-							</Text>
-						</View>
-					</View>
-				</View>
-			</View>
-		</TouchableOpacity>
-	);
-};
-
-export const AnnouncementSection = () => {
-	const themeName = useColorScheme();
-	const {colors} = themes(themeName);
-	const style = styles(themeName);
-	const dispatch = useDispatch();
-	const announcements = useSelector((s: State) => s.announcement.announcements).filter(
-		({visibleNotAfter, visibleExact}) => (
-			visibleNotAfter === undefined ||
-			visibleExact === undefined ||
-			!gt(VersionNumber.appVersion, visibleNotAfter) ||
-			visibleExact.split(",").includes(VersionNumber.appVersion)
-		)
-	);
-	if (announcements.length === 0) {
-		return null;
-	}
-
-	return (
-		<View style={style.SectionContainer}>
-			<Text style={style.SectionTitle}>{getStr("announcements")}</Text>
-			<View style={style.SectionContentContainer}>
-				{announcements.map(
-					({id, read, title, content}) => (
-						<TouchableOpacity
-							onPress={() => dispatch(toggleReadStatus(id))}
-							style={{marginTop: 8, marginHorizontal: 8}}
-							key={id}>
-							<Text style={{fontWeight: "bold", color: colors.text}}>
-								{title} {read ? "(已读)" : ""}
-							</Text>
-							{!read && <Text style={{color: colors.fontB2}}>{content}</Text>}
-						</TouchableOpacity>
-					)
-				)}
-			</View>
-		</View>
-	);
-};
-
-export const HomeReservationSection = () => {
-	const themeName = useColorScheme();
-	const style = styles(themeName);
-	return (
-		<View style={style.SectionContainer}>
-			<Text style={style.SectionTitle}>{getStr("reservation")}</Text>
-			<LibraryReservationCard />
-		</View>
-	);
-};
-
-export const HomeScheduleSection = () => {
-	const themeName = useColorScheme();
-	const theme = themes(themeName);
-
-	const firstDay = useSelector((s: State) => s.config.firstDay);
-	const baseSchedule = useSelector((s: State) => s.schedule.baseSchedule);
-	const shortenMap = useSelector((s: State) => s.schedule.shortenMap);
-	const crTimetable = useSelector((s: State) => s.timetable.crTimetable);
-	const now = dayjs();
-	const today = now.day() === 0 ? 7 : now.day();
-	const tomorrow = today + 1;
-	const week = Math.floor(now.diff(firstDay) / 604800000) + 1;
-	const colorList: string[] = theme.colors.courseItemColorList;
-	const getColor = (x: string) =>
-		colorList[parseInt(md5(x).substr(0, 6), 16) % colorList.length];
-	const selectSchedule = (schedules: Schedule[], dayOfWeek: number) => {
-		// dayOfWeek use 8 to specify Monday of next week
-		let _week = week;
-		if (dayOfWeek === 8) {
-			_week += 1;
-			dayOfWeek = 1;
-		}
-		const a: (ScheduleViewModel & {beginTime: dayjs.Dayjs; endTime: dayjs.Dayjs})[] = [];
-		for (const s of schedules) {
-			for (const ss of s.activeTime.base) {
-				const sliceWeek = getWeekFromTime(ss.beginTime, firstDay);
-				if (sliceWeek === _week) {
-					if (ss.dayOfWeek === dayOfWeek) {
-						const from = ss.beginTime.format("HH:mm");
-						const to = ss.endTime.format("HH:mm");
-
-						if (s.type === ScheduleType.CUSTOM) {
-							a.push({
-								name: shortenMap[s.name] ?? s.name,
-								location: s.location,
-								from,
-								to,
-								beginTime: ss.beginTime,
-								endTime: ss.endTime,
-								color: getColor(s.name),
-								navProps: {
-									name: s.name,
-									location: s.location,
-									week: _week,
-									dayOfWeek: today,
-									beginTime: ss.beginTime,
-									endTime: ss.endTime,
-									alias: shortenMap[s.name] ?? "",
-									type: s.type,
-									category: s.category,
-								},
-							});
-						} else {
-							a.push({
-								name: shortenMap[s.name] ?? s.name,
-								location: s.location,
-								from,
-								to,
-								beginTime: ss.beginTime,
-								endTime: ss.endTime,
-								color: getColor(s.name),
-								navProps: {
-									name: s.name,
-									location: s.location,
-									week: _week,
-									dayOfWeek: today,
-									beginTime: ss.beginTime,
-									endTime: ss.endTime,
-									alias: shortenMap[s.name] ?? "",
-									type: s.type,
-									category: s.category,
-								},
-							});
-						}
-					}
-				}
-			}
-		}
-		a.sort((x, y) => x.beginTime.diff(y.beginTime));
-		return a;
-	};
-	const todaySchedules = selectSchedule(baseSchedule, today);
-	const tomorrowSchedules = selectSchedule(baseSchedule, tomorrow);
-	const style = styles(themeName);
-
-	const dayZh = [
-		"",
-		"星期一",
-		"星期二",
-		"星期三",
-		"星期四",
-		"星期五",
-		"星期六",
-		"星期天",
-	];
-
-	const dayEn = ["", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat.", "Sun."];
-
-	const activeTimetables = crTimetable.filter(
-		(timetable) =>
-			(helper.graduate() && timetable.graduate) ||
-			(!helper.graduate() && timetable.undergraduate),
-	);
-	const activeEvents = activeTimetables
-		.flatMap(({events}) => events)
-		.filter((event) => {
-			const begin = dayjs(event.begin);
-			const end = dayjs(event.end);
-			return now.isBefore(end) && now.isAfter(begin.add(-14, "day"));
-		});
-
-	return (
-		<View style={style.SectionContainer}>
-			<Text style={style.SectionTitle}>{getStr("schedulePreview")}</Text>
-			<View style={[
-					style.SectionContentContainer,
-					{ paddingHorizontal: 20 },
-				]}>
-				<Text style={style.scheduleSectionContentPrimaryTitle}>
-					{getLocale() === zh
-						? `${now.month() + 1}月${now.date()}日 ${dayZh[today]}`
-						: `${dayEn[today]} ${now.month() + 1}/${now.date()}`}
-				</Text>
-				{todaySchedules.length > 0 ? (
-					todaySchedules.map((x) => (
-						<HomeSchedule key={x.name + x.from + x.to} schedule={x} />
-					))
-				) : (
-					<Text style={{color: theme.colors.text, marginTop: 8}}>
-						{getStr("noScheduleToday")}
-					</Text>
-				)}
-				{tomorrowSchedules.length > 0 && (
-					<Text style={style.scheduleSectionContentSecondaryTitle}>
-						{getStr("scheduleTomorrow")}
-					</Text>
-				)}
-				{tomorrowSchedules.map((x) => (
-					<HomeSchedule key={x.name + x.from + x.to} schedule={x} />
-				))}
-				<Text style={style.scheduleSectionContentPrimaryTitle}>
-					{getStr("countdown")}
-				</Text>
-				{activeEvents.length > 0 ? (
-					activeEvents.map((e) => (
-						<TouchableOpacity
-							onPress={() => Linking.openURL(e.messages[0])}
-							key={e.stage + e.begin + e.end}>
-							<HomeSchedule
-								schedule={{
-									name: e.stage,
-									location: getStr(
-										now.isBefore(dayjs(e.begin)) ? "pending" : "ongoing",
-									),
-									from: e.begin,
-									to: e.end,
-									color: getColor(e.stage),
-								}}
-							/>
-						</TouchableOpacity>
-					))
-				) : (
-					<Text style={{color: theme.colors.text, marginTop: 8}}>
-						{getStr("noCountdown")}
-					</Text>
-				)}
-			</View>
-		</View>
-	);
-};
-
-export type HomeFunction =
-	| "report"
-	| "physicalExam"
-	| "teachingEvaluation"
-	| "classroomState"
-	| "reserve"
-	| "cr"
-	| "library"
-	| "libRoomBook"
-	| "reservesLib"
-	| "expenditure"
-	| "finance"
-	| "campusCard"
-	| "sportsBook"
-	| "bankPayment"
-	| "invoice"
-	| "income"
-	| "campusMap"
-	| "qzyq"
-	| "washer"
-	| "electricity"
-	| "dormitory"
-	| "dormScore"
-	| "network"
-	| "networkDetail"
-	| "onlineDevices"
-	| "schoolCalendar";
+const EMPTY_DISABLED: HomeFunction[] = [];
 
 const subFunctionLocked = () => {
 	const s = currState();
@@ -466,344 +79,306 @@ const subFunctionLocked = () => {
 	);
 };
 
-const getHomeFunctions = (
-	navigate: (name: keyof RootStackParamList, params?: any) => void,
-	updateTop5: (func: HomeFunction) => void,
-): ReactElement[] => [
-	<HomeIcon
-		key="report"
-		title="report"
-		onPress={() => {
-			addUsageStat(FunctionType.Report);
-			updateTop5("report");
-			if (
-				currState().config.verifyPasswordBeforeEnterReport &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "Report",
-				});
-			} else {
-				navigate("Report");
-			}
-		}}>
-		<IconReport width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="physicalExam"
-		title="physicalExam"
-		onPress={() => {
-			addUsageStat(FunctionType.PhysicalExam);
-			updateTop5("physicalExam");
-			if (
-				currState().config.verifyPasswordBeforeEnterPhysicalExam &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "PhysicalExam",
-				});
-			} else {
-				navigate("PhysicalExam");
-			}
-		}}>
-		<IconPhysicalExam width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="teachingEvaluation"
-		title="teachingEvaluation"
-		onPress={() => {
-			addUsageStat(FunctionType.TeachingEvaluation);
-			updateTop5("teachingEvaluation");
-			navigate("Evaluation");
-		}}>
-		<IconEvaluation width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="classroomState"
-		title="classroomState"
-		onPress={() => {
-			addUsageStat(FunctionType.Classrooms);
-			updateTop5("classroomState");
-			navigate("ClassroomList");
-		}}>
-		<IconClassroom width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="reserve"
-		title="reservation"
-		onPress={() => {
-			navigate("Reserve");
-		}}>
-		<IconReserve width={iconSize} height={iconSize} />
-	</HomeIcon>,
-		...Platform.OS === "android" || Platform.OS === "ios" ? [<HomeIcon
-		key="cr"
-		title="courseRegistration"
-		onPress={() => {
-			updateTop5("cr");
-			navigate("CrHome");
-		}}>
-		<IconCr width={iconSize} height={iconSize} />
-	</HomeIcon>] : [],
-	<HomeIcon
-		key="library"
-		title="library"
-		onPress={() => {
-			addUsageStat(FunctionType.Library);
-			updateTop5("library");
-			navigate("Library");
-		}}>
-		<IconLibrary width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="libRoomBook"
-		title="libRoomBook"
-		onPress={() => {
-			addUsageStat(FunctionType.PrivateRooms);
-			updateTop5("libRoomBook");
-			navigate("LibRoomSelect");
-		}}>
-		<IconLibRoom width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="reservesLib"
-		title="reservesLib"
-		onPress={() => {
-			updateTop5("reservesLib");
-			navigate("ReservesLibWelcome");
-		}}>
-		<IconBook width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="campusCard"
-		title="campusCard"
-		onPress={() => {
-			addUsageStat(FunctionType.CampusCard);
-			updateTop5("campusCard");
-			if (
-				currState().config.verifyPasswordBeforeEnterFinance &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "CampusCard",
-				});
-			} else {
-				navigate("CampusCard");
-			}
-		}}>
-		<IconExpenditure width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="expenditure"
-		title="expenditure"
-		onPress={() => {
-			addUsageStat(FunctionType.Expenditures);
-			updateTop5("expenditure");
-			if (
-				currState().config.verifyPasswordBeforeEnterFinance &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "Expenditure",
-				});
-			} else {
-				navigate("Expenditure");
-			}
-		}}>
-		<IconExpenditure width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="finance"
-		title="campusFinance"
-		onPress={() => {
-			if (
-				currState().config.verifyPasswordBeforeEnterFinance &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "Finance",
-				});
-			} else {
-				navigate("Finance");
-			}
-		}}>
-		<IconFinance width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="sportsBook"
-		title="sportsBook"
-		onPress={() => {
-			addUsageStat(FunctionType.GymnasiumReg);
-			updateTop5("sportsBook");
-			navigate("Sports");
-		}}>
-		<IconSports width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="bankPayment"
-		title="bankPayment"
-		onPress={() => {
-			addUsageStat(FunctionType.Bank);
-			updateTop5("bankPayment");
-			if (
-				currState().config.verifyPasswordBeforeEnterFinance &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "BankPayment",
-				});
-			} else {
-				navigate("BankPayment");
-			}
-		}}>
-		<IconBankPayment width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="invoice"
-		title="invoice"
-		onPress={() => {
-			addUsageStat(FunctionType.Invoice);
-			updateTop5("invoice");
-			if (
-				currState().config.verifyPasswordBeforeEnterFinance &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "Invoice",
-				});
-			} else {
-				navigate("Invoice");
-			}
-		}}>
-		<IconInvoice width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="income"
-		title="graduateIncome"
-		onPress={() => {
-			addUsageStat(FunctionType.Income);
-			updateTop5("income");
-			if (
-				currState().config.verifyPasswordBeforeEnterFinance &&
-				subFunctionLocked()
-			) {
-				navigate("DigitalPassword", {
-					action: "verify",
-					target: "Income",
-				});
-			} else {
-				navigate("Income");
-			}
-		}}>
-		<IconIncome width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="campusMap"
-		title="campusMap"
-		onPress={() => {
-			updateTop5("campusMap");
-			navigate("CampusMap");
-		}}>
-		<IconLocal width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="qzyq"
-		title="qzyq"
-		onPress={() => {
-			addUsageStat(FunctionType.QZYQ);
-			updateTop5("qzyq");
-			navigate("Qzyq", {ticketNumber: 0});
-		}}>
-		<IconWater width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="washer"
-		title="washer"
-		onPress={() => {
-			addUsageStat(FunctionType.WasherInfo);
-			updateTop5("washer");
-			navigate("Washer");
-		}}>
-		<IconWasher width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="electricity"
-		title="electricity"
-		onPress={() => {
-			addUsageStat(FunctionType.Electricity);
-			updateTop5("electricity");
-			navigate("Electricity");
-		}}>
-		<IconEleRecharge width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="dormScore"
-		title="dormScore"
-		onPress={() => {
-			addUsageStat(FunctionType.DormScore);
-			updateTop5("dormScore");
-			navigate("DormScore");
-		}}>
-		<IconDormScore width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="dormitory"
-		title="dorm"
-		onPress={() => {
-			navigate("Dorm");
-		}}>
-		<IconDorm width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="network"
-		title="network"
-		onPress={() => {
-			navigate("Network");
-		}}>
-		<IconNetwork width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="networkDetail"
-		title="networkDetail"
-		onPress={() => {
-			addUsageStat(FunctionType.NetworkDetail);
-			updateTop5("networkDetail");
-			navigate("NetworkDetail");
-		}}>
-		<IconNetworkDetail width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="onlineDevices"
-		title="onlineDevices"
-		onPress={() => {
-			addUsageStat(FunctionType.OnlineDevices);
-			updateTop5("onlineDevices");
-			navigate("OnlineDevices");
-		}}>
-		<IconNetworkOnlineDevices width={iconSize} height={iconSize} />
-	</HomeIcon>,
-	<HomeIcon
-		key="schoolCalendar"
-		title="schoolCalendar"
-		onPress={() => {
-			addUsageStat(FunctionType.SchoolCalendar);
-			updateTop5("schoolCalendar");
-			navigate("SchoolCalendar");
-		}}>
-		<IconCalendar width={iconSize} height={iconSize} />
-	</HomeIcon>,
-];
+export interface HomeFunctionMeta {
+	key: ManagedHomeFunction;
+	titleKey: keyof typeof zh;
+	groupKey: keyof typeof zh;
+	renderIcon: (size: number) => ReactElement;
+	onTrigger: (
+		navigate: (name: keyof RootStackParamList, params?: any) => void,
+	) => void;
+}
+
+export const HOME_FUNCTION_META: Record<ManagedHomeFunction, HomeFunctionMeta> =
+	{
+		campusCard: {
+			key: "campusCard",
+			titleKey: "campusCard",
+			groupKey: "campusFinance",
+			renderIcon: (size) => <IconExpenditure width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.CampusCard);
+				if (
+					currState().config.verifyPasswordBeforeEnterFinance &&
+					subFunctionLocked()
+				) {
+					navigate("DigitalPassword", {
+						action: "verify",
+						target: "CampusCard",
+					});
+				} else {
+					navigate("CampusCard");
+				}
+			},
+		},
+		electricity: {
+			key: "electricity",
+			titleKey: "electricity",
+			groupKey: "dorm",
+			renderIcon: (size) => <IconEleRecharge width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Electricity);
+				navigate("Electricity");
+			},
+		},
+		washer: {
+			key: "washer",
+			titleKey: "washer",
+			groupKey: "dorm",
+			renderIcon: (size) => <IconWasher width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.WasherInfo);
+				navigate("Washer");
+			},
+		},
+		qzyq: {
+			key: "qzyq",
+			titleKey: "qzyq",
+			groupKey: "dorm",
+			renderIcon: (size) => <IconWater width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.QZYQ);
+				navigate("Qzyq", {ticketNumber: 0});
+			},
+		},
+		library: {
+			key: "library",
+			titleKey: "library",
+			groupKey: "reservation",
+			renderIcon: (size) => <IconLibrary width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Library);
+				navigate("Library");
+			},
+		},
+		libRoomBook: {
+			key: "libRoomBook",
+			titleKey: "libRoomBook",
+			groupKey: "reservation",
+			renderIcon: (size) => <IconLibRoom width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.PrivateRooms);
+				navigate("LibRoomSelect");
+			},
+		},
+		sportsBook: {
+			key: "sportsBook",
+			titleKey: "sportsBook",
+			groupKey: "reservation",
+			renderIcon: (size) => <IconSports width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.GymnasiumReg);
+				navigate("Sports");
+			},
+		},
+		report: {
+			key: "report",
+			titleKey: "report",
+			groupKey: "study",
+			renderIcon: (size) => <IconReport width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Report);
+				if (
+					currState().config.verifyPasswordBeforeEnterReport &&
+					subFunctionLocked()
+				) {
+					navigate("DigitalPassword", {
+						action: "verify",
+						target: "Report",
+					});
+				} else {
+					navigate("Report");
+				}
+			},
+		},
+		classroomState: {
+			key: "classroomState",
+			titleKey: "classroomState",
+			groupKey: "study",
+			renderIcon: (size) => <IconClassroom width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Classrooms);
+				navigate("ClassroomList");
+			},
+		},
+		cr: {
+			key: "cr",
+			titleKey: "courseRegistration",
+			groupKey: "study",
+			renderIcon: (size) => <IconCr width={size} height={size} />,
+			onTrigger: (navigate) => {
+				navigate("CrHome");
+			},
+		},
+		teachingEvaluation: {
+			key: "teachingEvaluation",
+			titleKey: "teachingEvaluation",
+			groupKey: "seasonalFeatures",
+			renderIcon: (size) => <IconEvaluation width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.TeachingEvaluation);
+				navigate("Evaluation");
+			},
+		},
+		schoolCalendar: {
+			key: "schoolCalendar",
+			titleKey: "schoolCalendar",
+			groupKey: "study",
+			renderIcon: (size) => <IconCalendar width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.SchoolCalendar);
+				navigate("SchoolCalendar");
+			},
+		},
+		networkDetail: {
+			key: "networkDetail",
+			titleKey: "networkDetail",
+			groupKey: "network",
+			renderIcon: (size) => <IconNetworkDetail width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.NetworkDetail);
+				navigate("NetworkDetail");
+			},
+		},
+		onlineDevices: {
+			key: "onlineDevices",
+			titleKey: "onlineDevices",
+			groupKey: "network",
+			renderIcon: (size) => (
+				<IconNetworkOnlineDevices width={size} height={size} />
+			),
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.OnlineDevices);
+				navigate("OnlineDevices");
+			},
+		},
+		bankPayment: {
+			key: "bankPayment",
+			titleKey: "bankPayment",
+			groupKey: "campusFinance",
+			renderIcon: (size) => <IconBankPayment width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Bank);
+				if (
+					currState().config.verifyPasswordBeforeEnterFinance &&
+					subFunctionLocked()
+				) {
+					navigate("DigitalPassword", {
+						action: "verify",
+						target: "BankPayment",
+					});
+				} else {
+					navigate("BankPayment");
+				}
+			},
+		},
+		invoice: {
+			key: "invoice",
+			titleKey: "invoice",
+			groupKey: "campusFinance",
+			renderIcon: (size) => <IconInvoice width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Invoice);
+				if (
+					currState().config.verifyPasswordBeforeEnterFinance &&
+					subFunctionLocked()
+				) {
+					navigate("DigitalPassword", {
+						action: "verify",
+						target: "Invoice",
+					});
+				} else {
+					navigate("Invoice");
+				}
+			},
+		},
+		income: {
+			key: "income",
+			titleKey: "graduateIncome",
+			groupKey: "campusFinance",
+			renderIcon: (size) => <IconIncome width={size} height={size} />,
+			onTrigger: (navigate) => {
+				addUsageStat(FunctionType.Income);
+				if (
+					currState().config.verifyPasswordBeforeEnterFinance &&
+					subFunctionLocked()
+				) {
+					navigate("DigitalPassword", {
+						action: "verify",
+						target: "Income",
+					});
+				} else {
+					navigate("Income");
+				}
+			},
+		},
+	};
+
+export const AnnouncementSection = () => {
+	const themeName = useColorScheme();
+	const {colors} = themes(themeName);
+	const style = styles(themeName);
+	const dispatch = useDispatch();
+	const announcements = useSelector(
+		(s: State) => s.announcement.announcements,
+	).filter(
+		({visibleNotAfter, visibleExact}) =>
+			visibleNotAfter === undefined ||
+			visibleExact === undefined ||
+			!gt(VersionNumber.appVersion, visibleNotAfter) ||
+			visibleExact.split(",").includes(VersionNumber.appVersion),
+	);
+	if (announcements.length === 0) {
+		return null;
+	}
+
+	return (
+		<View style={style.SectionContainer}>
+			<Text style={style.SectionTitle}>{getStr("announcements")}</Text>
+			<View style={style.SectionContentContainer}>
+				{announcements.map(({id, read, title, content}) => (
+					<TouchableOpacity
+						onPress={() => dispatch(toggleReadStatus(id))}
+						style={{marginTop: 8, marginHorizontal: 8}}
+						key={id}>
+						<Text style={{fontWeight: "bold", color: colors.text}}>
+							{title} {read ? "(已读)" : ""}
+						</Text>
+						{!read && <Text style={{color: colors.fontB2}}>{content}</Text>}
+					</TouchableOpacity>
+				))}
+			</View>
+		</View>
+	);
+};
+
+export const HomeReservationSection = () => {
+	const themeName = useColorScheme();
+	const style = styles(themeName);
+	const activeLibBookRecords = useSelector(
+		(s: State) => s.reservation.activeLibBookRecords,
+	);
+	const hasActiveLibBooking = (activeLibBookRecords ?? []).some((e) => {
+		const due = dayjs(e.time, "YYYY-MM-DD HH:mm").add(60, "minute");
+		return due.valueOf() > dayjs().valueOf();
+	});
+
+	if (!hasActiveLibBooking) {
+		return null;
+	}
+
+	return (
+		<View style={style.SectionContainer}>
+			<Text style={style.SectionTitle}>{getStr("reservation")}</Text>
+			<LibraryReservationCard />
+		</View>
+	);
+};
 
 export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
 	const theme = themes(themeName);
+	const settingStyle = settingsStyles(themeName);
 	const dispatch = useDispatch();
 	const dark = useSelector((s: State) => s.config.darkMode);
 	const darkModeHook = dark || themeName === "dark";
@@ -819,7 +394,6 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 					...(params as object),
 					// @ts-ignore
 					disableAnimation: true,
-					// make sure to clear old stack state
 				}),
 			);
 		} else {
@@ -828,75 +402,17 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 		}
 	};
 
-	const top5Functions = useSelector((s: State) => s.top5.top5Functions);
-	const disabledList: HomeFunction[] | undefined = useSelector(
-		(state: State) => state.config.homeFunctionDisabled,
+	const disabledList = useSelector(
+		(state: State) => state.config.homeFunctionDisabled ?? EMPTY_DISABLED,
+	);
+	const homeFunctionOrder = useSelector(
+		(state: State) => state.config.homeFunctionOrder,
 	);
 
-	if (!disabledList) {
-		dispatch(configSet({key: "homeFunctionDisabled", value: []}));
-	}
-
-	const sunsetFunctions: HomeFunction[] = ["expenditure"];
-
-	const homeFunctions = getHomeFunctions(
-		navigateWithDetail,
-		(func) => dispatch(top5Update(func)),
-	);
-	const top5 = top5Functions.map((x) => homeFunctions.find((y) => y.key === x));
-	let needToShowFunctionNames: HomeFunction[] = [];
-	["physicalExam", "teachingEvaluation", "report", "classroomState"].forEach(
-		(i) => {
-			if (!(disabledList ?? []).includes(i as HomeFunction)) {
-				needToShowFunctionNames.push(i as HomeFunction);
-			}
-		},
-	);
-	if (
-		!["library", "sportsBook", "libRoomBook"].every((i) =>
-			(disabledList ?? []).includes(i as HomeFunction),
-		)
-	) {
-		// not all reserve functions are disabled
-		needToShowFunctionNames.push("reserve");
-	}
-	if (
-		!["campusCard", "bankPayment", "invoice"].every((i) =>
-			(disabledList ?? []).includes(i as HomeFunction),
-		)
-	) {
-		needToShowFunctionNames.push("finance");
-	}
-	if (
-		!["washer", "qzyq", "dormScore", "electricity"].every((i) =>
-			(disabledList ?? []).includes(i as HomeFunction),
-		)
-	) {
-		needToShowFunctionNames.push("dormitory");
-	}
-
-	if (
-		!["networkDetail", "onlineDevices"].every((i) =>
-			(disabledList ?? []).includes(i as HomeFunction),
-		)
-	) {
-		needToShowFunctionNames.push("network");
-	}
-
-	if (!(disabledList ?? []).includes("schoolCalendar" as HomeFunction)) {
-		needToShowFunctionNames.push("schoolCalendar" as HomeFunction);
-	}
-
-	if (!(disabledList ?? []).includes("cr" as HomeFunction)) {
-		needToShowFunctionNames.push("cr" as HomeFunction);
-	}
-
-	const top5Filtered = top5.filter(
-		(f) => f && !sunsetFunctions.includes((f as any).key) && !(disabledList ?? []).includes((f as any).key),
-	);
-
-	const needToShowFunctions = needToShowFunctionNames.map((x) =>
-		homeFunctions.find((y) => y.key === x),
+	const visibleFunctions = getVisibleHomeFunctions(
+		homeFunctionOrder,
+		disabledList,
+		Platform.OS,
 	);
 
 	const fingerprintSecure: boolean | undefined = useSelector(
@@ -917,10 +433,17 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 
 	useEffect(() => {
 		// @ts-ignore
-		if (Platform.OS !== "ios" && Platform.OS !== "android" && Platform.OS !== "harmony") {
+		if (
+			Platform.OS !== "ios" &&
+			Platform.OS !== "android" &&
+			Platform.OS !== "harmony"
+		) {
 			return;
 		}
-		if (!(Platform.OS === "android" || Platform.OS === "ios") && privacy312 !== true) {
+		if (
+			!(Platform.OS === "android" || Platform.OS === "ios") &&
+			privacy312 !== true
+		) {
 			Alert.alert(
 				getStr("privacyPolicy"),
 				getStr("privacyPolicyPrompt"),
@@ -954,23 +477,33 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 					sportsReservationRecords,
 					crTimetable,
 					balance,
-					latestVersion,
+					latestVersion: remoteLatest,
 					latestAnnounces,
 				}) => {
 					dispatch(setActiveLibBookRecord(bookingRecords));
 					dispatch(setActiveSportsReservationRecord(sportsReservationRecords));
 					dispatch(setCrTimetable(crTimetable));
 					dispatch(
-						configSet({key: "latestVersion", value: latestVersion.versionName}),
+						configSet({
+							key: "latestVersion",
+							value: remoteLatest.versionName,
+						}),
 					);
 					dispatch(updateAnnouncements(latestAnnounces));
 					dispatch(setBalance(balance));
-					if (fingerprintSecure !== true && invalidHelper.userId !== "" && invalidHelper.password !== "") {
-						invalidHelper.forgetDevice().then(() => {
-							dispatch(configSet({key: "fingerprintSecure", value: true}));
-						}).catch(() => {
-							// no-op
-						});
+					if (
+						fingerprintSecure !== true &&
+						invalidHelper.userId !== "" &&
+						invalidHelper.password !== ""
+					) {
+						invalidHelper
+							.forgetDevice()
+							.then(() => {
+								dispatch(configSet({key: "fingerprintSecure", value: true}));
+							})
+							.catch(() => {
+								// no-op
+							});
 					}
 				},
 			);
@@ -1005,7 +538,14 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 						hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
 						style={{position: "absolute", right: 10, top: 10, zIndex: 1}}
 						onPress={() => setUpdateBannerDismissed(true)}>
-						<Text style={{fontSize: 20, color: theme.colors.text, lineHeight: 24}}>×</Text>
+						<Text
+							style={{
+								fontSize: 20,
+								color: theme.colors.text,
+								lineHeight: 24,
+							}}>
+							×
+						</Text>
 					</TouchableOpacity>
 					<Text
 						style={{
@@ -1018,7 +558,12 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 						{getStr("updateBannerTitle")}
 					</Text>
 					<TouchableOpacity
-						style={{alignSelf: "flex-end", flexDirection: "row", alignItems: "center", gap: 4}}
+						style={{
+							alignSelf: "flex-end",
+							flexDirection: "row",
+							alignItems: "center",
+							gap: 4,
+						}}
 						onPress={() =>
 							navigation.navigate("About", {openCheckUpdate: true})
 						}>
@@ -1047,24 +592,74 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 				}}
 				contentContainerStyle={showUpdateBanner ? {paddingTop: 76} : undefined}
 				key={String(darkModeHook)}>
-				<HomeFunctionSection title="recentlyUsedFunction">
-					{top5Filtered.length === 0 ? (
-						<View style={{flex: 1, marginTop: 16 - 8, alignItems: "center", justifyContent: "center"}}>
-							<Text style={{color: theme.colors.text}}>
-								{getStr("recentUseHint")}
-							</Text>
-						</View>
-					) : (
-						top5Filtered
-					)}
-				</HomeFunctionSection>
 				<AnnouncementSection />
 				<HomeReservationSection />
-				<HomeScheduleSection />
-				<HomeFunctionSection title="allFunction">
-					{needToShowFunctions}
-				</HomeFunctionSection>
-				<View style={{height: 12}} />
+				<View style={{marginHorizontal: 12, marginTop: 12}}>
+					<RoundedView style={{paddingVertical: 8}}>
+						{visibleFunctions.length === 0 ? (
+							<View
+								style={{
+									paddingVertical: 24,
+									alignItems: "center",
+									justifyContent: "center",
+								}}>
+								<Text style={{color: theme.colors.fontB2}}>
+									{getStr("emptyList")}
+								</Text>
+							</View>
+						) : (
+							visibleFunctions.map((funcKey, index) => {
+								const meta = HOME_FUNCTION_META[funcKey];
+								return (
+									<View key={funcKey}>
+										{index > 0 && (
+											<View
+												style={[
+													settingStyle.separator,
+													{marginVertical: 4, marginHorizontal: 16},
+												]}
+											/>
+										)}
+										<TouchableOpacity
+											testID={"HomeItem-" + funcKey}
+											style={{
+												flexDirection: "row",
+												alignItems: "center",
+												paddingHorizontal: 16,
+												paddingVertical: 11,
+											}}
+											onPress={() => {
+												dispatch(top5Update(funcKey));
+												meta.onTrigger(navigateWithDetail);
+											}}>
+											<View style={{marginRight: 14}}>
+												{meta.renderIcon(26)}
+											</View>
+											<Text
+												style={{
+													flex: 1,
+													fontSize: 16,
+													color: theme.colors.text,
+												}}>
+												{getStr(meta.titleKey)}
+											</Text>
+											<Text
+												style={{
+													fontSize: 12,
+													color: theme.colors.fontB3,
+													marginRight: 6,
+												}}>
+												{getStr(meta.groupKey)}
+											</Text>
+											<IconRight width={18} height={18} />
+										</TouchableOpacity>
+									</View>
+								);
+							})
+						)}
+					</RoundedView>
+				</View>
+				<View style={{height: 20}} />
 			</ScrollView>
 		</View>
 	);
@@ -1081,7 +676,6 @@ const styles = themedStyles((theme) => ({
 		paddingHorizontal: 12,
 		paddingTop: 8,
 		paddingBottom: 16,
-		// minHeight: 92, // this value is produced by trying many times...
 	},
 	SectionTitle: {
 		textAlign: "left",
@@ -1091,26 +685,5 @@ const styles = themedStyles((theme) => ({
 		marginBottom: 8,
 		fontWeight: "bold",
 		color: theme.colors.text,
-	},
-	functionSectionContent: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		justifyContent: "flex-start",
-	},
-	scheduleSectionContentPrimaryTitle: {
-		color: theme.colors.themeDarkPurple,
-		fontWeight: "bold",
-		paddingTop: 8,
-	},
-	scheduleSectionContentSecondaryTitle: {
-		color: theme.colors.fontB2,
-		fontWeight: "bold",
-		paddingTop: 8,
-	},
-	reservationSectionContainer: {
-		paddingHorizontal: 24,
-		paddingVertical: 20,
-		alignItems: "center",
-		justifyContent: "center",
 	},
 }));

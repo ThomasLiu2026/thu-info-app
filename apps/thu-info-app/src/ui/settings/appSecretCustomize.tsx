@@ -15,7 +15,6 @@ export const AppSecretCustomizeScreen = () => {
 	const {
 		verifyPasswordBeforeEnterReport,
 		verifyPasswordBeforeEnterFinance,
-		verifyPasswordBeforeEnterPhysicalExam,
 	} = useSelector((s: State) => s.config);
 	const dispatch = useDispatch();
 
@@ -45,23 +44,6 @@ export const AppSecretCustomizeScreen = () => {
 						onValueChange={(value) => {
 							dispatch(
 								configSet({key: "verifyPasswordBeforeEnterFinance", value}),
-							);
-						}}
-					/>
-				</View>
-				<View style={style.separator} />
-				<View style={style.touchable}>
-					<Text style={style.text}>{getStr("physicalExam")}</Text>
-					<Switch
-						thumbColor={colors.contentBackground}
-						trackColor={{true: colors.themePurple}}
-						value={verifyPasswordBeforeEnterPhysicalExam === true}
-						onValueChange={(value) => {
-							dispatch(
-								configSet({
-									key: "verifyPasswordBeforeEnterPhysicalExam",
-									value,
-								}),
 							);
 						}}
 					/>

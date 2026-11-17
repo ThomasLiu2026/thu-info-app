@@ -34,7 +34,6 @@ export const AppSecretScreen = ({navigation}: {navigation: RootNav}) => {
 		verifyPasswordBeforeEnterApp,
 		verifyPasswordBeforeEnterReport,
 		verifyPasswordBeforeEnterFinance,
-		verifyPasswordBeforeEnterPhysicalExam,
 		useBiometrics,
 	} = useSelector((s: State) => s.config);
 	const dispatch = useDispatch();
@@ -45,9 +44,6 @@ export const AppSecretScreen = ({navigation}: {navigation: RootNav}) => {
 	}
 	if (verifyPasswordBeforeEnterFinance) {
 		protectedStrings.push(getStr("campusFinance"));
-	}
-	if (verifyPasswordBeforeEnterPhysicalExam) {
-		protectedStrings.push(getStr("physicalExam"));
 	}
 	const protectedText = protectedStrings.join(getStr("slightPauseMark"));
 

@@ -3,7 +3,6 @@ import {useColorScheme, View} from "react-native";
 import {SecondaryItem, styles} from "../../components/home/secondaryItems";
 import IconWasher from "../../assets/icons/IconWasher";
 import IconWater from "../../assets/icons/IconWater";
-import IconDormScore from "../../assets/icons/IconDormScore";
 import IconEleRecharge from "../../assets/icons/IconEleRecharge";
 import {addUsageStat, FunctionType} from "../../utils/webApi";
 import {currState} from "../../redux/store";
@@ -34,17 +33,6 @@ export const DormScreen = ({navigation}: {navigation: RootNav}) => {
 						onPress={() => {
 							addUsageStat(FunctionType.QZYQ);
 							navigation.navigate("Qzyq", {ticketNumber: 0});
-						}}
-					/>
-				)}
-				{!disabledFunction.includes("dormScore") && (
-					<SecondaryItem
-						title="dormScore"
-						destKey="dormScore"
-						icon={<IconDormScore />}
-						onPress={() => {
-							addUsageStat(FunctionType.DormScore);
-							navigation.navigate("DormScore");
 						}}
 					/>
 				)}

@@ -1,7 +1,7 @@
 import {createSlice} from "@reduxjs/toolkit";
 import type {PayloadAction} from "@reduxjs/toolkit";
 import {ValidReceiptTypes} from "@thu-info/lib/src/lib/sports";
-import {HomeFunction} from "../../ui/home/home";
+import type {HomeFunction} from "../../utils/homeOrder";
 import {Semester} from "@thu-info/lib/src/models/schedule/calendar";
 import { v4 as uuidv4 } from "uuid";
 
@@ -36,6 +36,7 @@ export interface ConfigState {
 	exitTimestamp: number | undefined;
 	subFunctionUnlocked: boolean | undefined;
 	homeFunctionDisabled: HomeFunction[];
+	homeFunctionOrder: HomeFunction[] | undefined;
 	beta3Notified: boolean | undefined;
 	studentNotified: boolean | undefined;
 	disableBackgroundSecurityWarning: boolean | undefined;
@@ -83,6 +84,7 @@ const initialState: ConfigState = {
 	exitTimestamp: 0,
 	subFunctionUnlocked: false,
 	homeFunctionDisabled: [],
+	homeFunctionOrder: undefined,
 	beta3Notified: false,
 	studentNotified: false,
 	disableBackgroundSecurityWarning: false,

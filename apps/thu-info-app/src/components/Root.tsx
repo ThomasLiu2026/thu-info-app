@@ -1,13 +1,10 @@
-import {useState} from "react";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import {getStr} from "../utils/i18n";
 import {addUsageStat, FunctionType} from "../utils/webApi";
 import themes from "../assets/themes/themes";
 import {TouchableOpacity, useColorScheme, View} from "react-native";
 import {HomeScreen} from "../ui/home/home";
-import {NewsScreen} from "../ui/news/news";
-import {ChannelTag, NewsSlice} from "@thu-info/lib/src/models/news/news";
-import {ScheduleScreen} from "../ui/schedule/schedule";
+import type {ChannelTag, NewsSlice} from "@thu-info/lib/src/models/news/news";
 import {SettingsScreen} from "../ui/settings/settings";
 import {
 	createStackNavigator,
@@ -21,14 +18,10 @@ import {
 } from "@thu-info/lib/src/models/home/library";
 import {SearchResultItem} from "@thu-info/lib/src/models/home/reserves-lib";
 import {SportsIdInfo} from "@thu-info/lib/src/models/home/sports";
-import {
-	ScheduleDetailProps,
-	ScheduleDetailScreen,
-} from "../ui/schedule/scheduleDetail";
+import type {ScheduleDetailProps} from "../ui/schedule/scheduleDetail";
 import {ReportScreen} from "../ui/home/report";
 import {EvaluationScreen} from "../ui/home/evaluation";
 import {FormScreen} from "../ui/home/form";
-import {PhysicalExamScreen} from "../ui/home/physicalExam";
 import {ExpenditureScreen} from "../ui/home/expenditure";
 import {ClassroomListScreen} from "../ui/home/classroomList";
 import {ClassroomDetailScreen} from "../ui/home/classroomDetail";
@@ -41,7 +34,6 @@ import {LibBookRecordScreen} from "../ui/home/libBookRecord";
 import {LibRoomBookScreen} from "../ui/home/libRoomBook";
 import {LibRoomPerformBookScreen} from "../ui/home/libRoomPerformBook";
 import {LibRoomBookRecordScreen} from "../ui/home/libRoomBookRecord";
-import {DormScoreScreen} from "../ui/home/dormScore";
 import {InvoiceScreen} from "../ui/home/invoice";
 import {InvoicePDFScreen} from "../ui/home/invoicePDF";
 import {ReservesLibWelcomeScreen} from "../ui/home/reservesLibWelcome";
@@ -65,16 +57,12 @@ import {
 import {ElectricityScreen} from "../ui/home/electricity";
 import {EleRecordScreen} from "../ui/home/eleRecord";
 import {LoseCardScreen} from "../ui/home/loseCard";
-import {NewsDetailScreen} from "../ui/news/newsDetail";
-import {ScheduleHiddenScreen} from "../ui/schedule/scheduleHidden";
 import {FeedbackScreen} from "../ui/settings/feedback";
 import {FeishuFeedbackScreen} from "../ui/settings/feishuFeedback";
 import {PopiScreen} from "../ui/settings/popi";
 import {AboutScreen} from "../ui/settings/about";
 import {RouteProp} from "@react-navigation/native";
 import IconHomeTab from "../assets/icons/IconHomeTab";
-import IconNewsTab from "../assets/icons/IconNewsTab";
-import IconScheduleTab from "../assets/icons/IconScheduleTab";
 import IconSettingsTab from "../assets/icons/IconSettingsTab";
 import {FinanceScreen} from "../ui/home/finance";
 import {DormScreen} from "../ui/home/dorm";
@@ -94,6 +82,7 @@ import {GeneralScreen} from "../ui/settings/general";
 import {LanguageScreen} from "../ui/settings/language";
 import {DarkModeScreen} from "../ui/settings/darkMode";
 import {FunctionManagementScreen} from "../ui/settings/functionManagement";
+import {HomeFunctionOrderScreen} from "../ui/settings/homeFunctionOrder";
 import {DigitalPasswordScreen} from "../ui/settings/digitalPassword";
 import {AppSecretScreen} from "../ui/settings/appSecret";
 import {AppSecretCustomizeScreen} from "../ui/settings/appSecretCustomize";
@@ -101,51 +90,36 @@ import {SportsSelectFieldScreen} from "../ui/home/sportsSelectField";
 import {SportsSelectTitleScreen} from "../ui/home/sportsSelectTitle";
 import {SportsSuccessScreen} from "../ui/home/sportsSuccess";
 import {LibRoomSelectScreen} from "../ui/home/libRoomSelect";
-import {NewsFavScreen} from "../ui/news/newsFav";
-import {IconStarButton} from "./news/IconStarButton";
-import {helper, State} from "../redux/store";
-import {NetworkRetry} from "./easySnackbars";
-import {
-	NewsSubChannelSelectScreen,
-	NewsSubScreen,
-	NewsSubSourceSelectScreen,
-} from "../ui/news/newsSub";
+import {State} from "../redux/store";
 import {ResetDormPasswordScreen} from "../ui/settings/resetDormPassword";
 import {Classroom} from "@thu-info/lib/src/models/home/classroom";
 import {AppSecretSelectLockTimeScreen} from "../ui/settings/appSecretSelectLockTime";
-import {ScheduleSyncScreen} from "../ui/schedule/scheduleSync";
 import {LoginScreen} from "../ui/settings/login";
-import {ScheduleSettingsScreen} from "../ui/settings/scheduleSettings";
 import {useSelector} from "react-redux";
 import {gt} from "semver";
 import VersionNumber from "react-native-version-number";
 import Share from "react-native-share";
 import {NetworkScreen} from "../ui/home/network";
-import {NetworkDetailScreen as NetworkDetailScreen} from "../ui/home/networkDetail";
-import {NetworkOnlineDevicesScreen as NetworkOnlineDevicesScreen} from "../ui/home/networkOnlineDevices";
+import {NetworkDetailScreen} from "../ui/home/networkDetail";
+import {NetworkOnlineDevicesScreen} from "../ui/home/networkOnlineDevices";
 import {PeekScoreScreen} from "../ui/home/peekScore";
 import {SchoolCalendar} from "../ui/home/schoolCalendar";
-import {DeepSeekScreen} from "../ui/home/deepseek";
-import { DeepSeekSettingsScreen } from "../ui/settings/deepseekSettings.tsx";
 import {CampusCardScreen} from "../ui/home/campusCard";
 import {TwoFactorAuthScreen} from "../ui/settings/twoFactorAuth.tsx";
-import { IncomeScreen } from "../ui/home/income.tsx";
-import { NetworkLoginScreen } from "../ui/home/networkLogin.tsx";
-import IconDeepSeekTab from "../assets/icons/IconDeepSeekTab.tsx";
+import {IncomeScreen} from "../ui/home/income.tsx";
+import {NetworkLoginScreen} from "../ui/home/networkLogin.tsx";
 import {EmptyScreen} from "../ui/home/empty";
 
 type RootTabParamList = {
 	HomeTab: undefined;
-	NewsTab: undefined;
-	DeepSeekTab: { prompt: string; dataSource: ChannelTag } | undefined;
-	ScheduleTab: undefined;
 	SettingsTab: undefined;
 };
 
-export type DeepSeekTabProp = RouteProp<
-	RootTabParamList,
-	"DeepSeekTab"
->;
+type LegacyDeepSeekParamList = {
+	DeepSeekTab: {prompt: string; dataSource: ChannelTag} | undefined;
+};
+
+export type DeepSeekTabProp = RouteProp<LegacyDeepSeekParamList, "DeepSeekTab">;
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
@@ -168,15 +142,6 @@ const RootTabs = () => {
 					switch (route.name) {
 						case "HomeTab": {
 							return <IconHomeTab size={size} active={focused} />;
-						}
-						case "NewsTab": {
-							return <IconNewsTab size={size} active={focused} />;
-						}
-						case "DeepSeekTab": {
-							return <IconDeepSeekTab size={size} active={focused} />;
-						}
-						case "ScheduleTab": {
-							return <IconScheduleTab size={size} active={focused} />;
 						}
 						case "SettingsTab": {
 							return <IconSettingsTab size={size} active={focused} />;
@@ -201,36 +166,6 @@ const RootTabs = () => {
 				})}
 			/>
 			<Tab.Screen
-				name="NewsTab"
-				component={NewsScreen}
-				options={{title: getStr("news"), headerShown: false}}
-				listeners={() => ({
-					tabPress: () => {
-						addUsageStat(FunctionType.News);
-					},
-				})}
-			/>
-			{helper.userId === "" || helper.mocked() ? null : <Tab.Screen
-				name="DeepSeekTab"
-				component={DeepSeekScreen}
-				options={{title: getStr("deepseek"), headerShown: false}}
-				listeners={() => ({
-					tabPress: () => {
-						addUsageStat(FunctionType.DeepSeek);
-					},
-				})}
-			/>}
-			<Tab.Screen
-				name="ScheduleTab"
-				component={ScheduleScreen}
-				options={{title: getStr("schedule"), headerShown: false}}
-				listeners={() => ({
-					tabPress: () => {
-						addUsageStat(FunctionType.Schedule);
-					},
-				})}
-			/>
-			<Tab.Screen
 				name="SettingsTab"
 				component={SettingsScreen}
 				options={{
@@ -246,11 +181,11 @@ const RootTabs = () => {
 };
 
 type HomeStackParamList = {
+	Empty: undefined;
 	Report: undefined;
 	PeekScore: undefined;
 	Evaluation: undefined;
 	Form: {name: string; url: string};
-	PhysicalExam: undefined;
 	Finance: undefined;
 	Expenditure: {initialTab?: "list" | "analysis"} | undefined;
 	CampusCard: undefined;
@@ -273,7 +208,6 @@ type HomeStackParamList = {
 	LibRoomPerformBook: {date: string; res: LibRoomRes}; // date: yyyy-MM-dd
 	LibRoomBookRecord: undefined;
 	Dorm: undefined;
-	DormScore: undefined;
 	Invoice: undefined;
 	InvoicePDF: {base64: string; filename: string};
 	Income: undefined;
@@ -298,7 +232,6 @@ type HomeStackParamList = {
 	Electricity: undefined;
 	EleRecord: undefined;
 	ECard: undefined;
-	ScheduleDetail: ScheduleDetailProps;
 	Network: undefined;
 	NetworkLogin: undefined;
 	NetworkDetail: undefined;
@@ -354,7 +287,8 @@ export type WaterSelectTicketNumberProp = RouteProp<
 	"WaterSelectTicketNumber"
 >;
 
-type NewsStackParamList = {
+// Retain legacy route parameter types for unmounted modules in src/ui/news & src/ui/schedule
+type LegacyNewsStackParamList = {
 	NewsDetail: {
 		detail: NewsSlice;
 		inFavInit: boolean;
@@ -368,28 +302,31 @@ type NewsStackParamList = {
 	NewsSubChannelSelect: undefined;
 };
 
-export type NewsDetailRouteProp = RouteProp<NewsStackParamList, "NewsDetail">;
+export type NewsDetailRouteProp = RouteProp<
+	LegacyNewsStackParamList,
+	"NewsDetail"
+>;
 
-export type NewsFavRouteProp = RouteProp<NewsStackParamList, "NewsFav">;
+export type NewsFavRouteProp = RouteProp<LegacyNewsStackParamList, "NewsFav">;
 
-type DeepSeekStackParamList = {
-	DeepSeek: undefined;
-};
-
-type ScheduleStackParamList = {
+type LegacyScheduleStackParamList = {
 	ScheduleHidden: undefined;
 	ScheduleDetail: ScheduleDetailProps;
 	ScheduleSync: {isSending: boolean};
 };
 
 export type ScheduleDetailRouteProp = RouteProp<
-	ScheduleStackParamList,
+	LegacyScheduleStackParamList,
 	"ScheduleDetail"
 >;
 
 type SettingsStackParamList = {
 	Login: undefined;
-	TwoFactorAuth: {hasWeChatBool: boolean; phone: string | null; hasTotp: boolean};
+	TwoFactorAuth: {
+		hasWeChatBool: boolean;
+		phone: string | null;
+		hasTotp: boolean;
+	};
 	Account: undefined;
 	DigitalPassword:
 		| {action: "new"}
@@ -399,11 +336,10 @@ type SettingsStackParamList = {
 	AppSecretCustomize: undefined;
 	AppSecretSelectLockTime: undefined;
 	FunctionManagement: undefined;
+	HomeFunctionOrder: undefined;
 	General: undefined;
 	Language: undefined;
 	DarkMode: undefined;
-	ScheduleSettings: undefined;
-	DeepSeekSettings: undefined;
 	Privacy: undefined;
 	HelpAndFeedback: undefined;
 	FeishuFeedback: undefined;
@@ -423,9 +359,8 @@ export type DigitalPasswordRouteProp = RouteProp<
 >;
 
 export type RootStackParamList = {RootTabs: undefined} & HomeStackParamList &
-	NewsStackParamList &
-	DeepSeekStackParamList &
-	ScheduleStackParamList &
+	LegacyNewsStackParamList &
+	LegacyScheduleStackParamList &
 	SettingsStackParamList;
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -471,11 +406,6 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 				name="Form"
 				component={FormScreen}
 				options={({route}) => ({title: route.params.name})}
-			/>
-			<Stack.Screen
-				name="PhysicalExam"
-				component={PhysicalExamScreen}
-				options={{title: getStr("physicalExam")}}
 			/>
 			<Stack.Screen
 				name="Finance"
@@ -643,11 +573,6 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 				name="Dorm"
 				component={DormScreen}
 				options={{title: getStr("dorm")}}
-			/>
-			<Stack.Screen
-				name="DormScore"
-				component={DormScoreScreen}
-				options={{title: getStr("dormScore")}}
 			/>
 			<Stack.Screen
 				name="Invoice"
@@ -829,97 +754,6 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 				component={SchoolCalendar}
 				options={{title: getStr("schoolCalendar")}}
 			/>
-			{/* News */}
-			<Stack.Screen
-				name="NewsDetail"
-				component={NewsDetailScreen}
-				options={({route}) => ({
-					title: getStr("newsDetail"),
-					headerRight: () => {
-						// eslint-disable-next-line react-hooks/rules-of-hooks
-						const [inFav, setInFav] = useState(route.params.inFavInit);
-						const isFromFav = route.params.isFromFav ?? false; // only changing news detail navigated from fav need to reload news main page
-						return (
-							<View style={{flexDirection: "row", marginRight: 16}}>
-								<IconStarButton
-									active={inFav}
-									onPress={() => {
-										if (inFav) {
-											helper
-												.removeNewsFromFavor(route.params.detail)
-												.then((res) => {
-													if (res) {
-														route.params.setInFavFunc(!inFav);
-														setInFav(!inFav);
-														if (isFromFav) {
-															route.params.reloadFunc?.();
-														}
-													} else {
-														return;
-													}
-												})
-												.catch(NetworkRetry);
-										} else {
-											// not in fav
-											helper
-												.addNewsToFavor(route.params.detail)
-												.then((res) => {
-													if (res) {
-														route.params.setInFavFunc(!inFav);
-														setInFav(!inFav);
-														if (isFromFav) {
-															route.params.reloadFunc?.();
-														}
-													} else {
-														return;
-													}
-												})
-												.catch(NetworkRetry);
-										}
-									}}
-									size={24}
-								/>
-							</View>
-						);
-					},
-				})}
-			/>
-			<Stack.Screen
-				name={"NewsFav"}
-				component={NewsFavScreen}
-				options={{title: getStr("newsFav")}}
-			/>
-			<Stack.Screen
-				name={"NewsSub"}
-				component={NewsSubScreen}
-				options={{title: getStr("newsSub")}}
-			/>
-			<Stack.Screen
-				name={"NewsSubSourceSelect"}
-				component={NewsSubSourceSelectScreen}
-				options={{title: getStr("newsSubSourceSelect")}}
-			/>
-			<Stack.Screen
-				name={"NewsSubChannelSelect"}
-				component={NewsSubChannelSelectScreen}
-				options={{title: getStr("newsSubChannelSelect")}}
-			/>
-			{/* Schedule */}
-			<Stack.Screen
-				name="ScheduleHidden"
-				component={ScheduleHiddenScreen}
-				options={{title: getStr("scheduleHidden")}}
-			/>
-			<Stack.Screen
-				name="ScheduleDetail"
-				component={ScheduleDetailScreen}
-				options={{title: getStr("scheduleDetail")}}
-			/>
-			<Stack.Screen
-				name="ScheduleSync"
-				component={ScheduleSyncScreen}
-				options={{title: getStr("scheduleSync")}}
-			/>
 			{/* Settings */}
 			<Stack.Screen
 				name="Login"
@@ -940,6 +774,11 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 				name="FunctionManagement"
 				component={FunctionManagementScreen}
 				options={{title: getStr("functionManagement")}}
+			/>
+			<Stack.Screen
+				name="HomeFunctionOrder"
+				component={HomeFunctionOrderScreen}
+				options={{title: getStr("homeFunctionOrder")}}
 			/>
 			<Stack.Screen
 				name="DigitalPassword"
@@ -975,16 +814,6 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 				name="DarkMode"
 				component={DarkModeScreen}
 				options={{title: getStr("darkMode")}}
-			/>
-			<Stack.Screen
-				name="DeepSeekSettings"
-				component={DeepSeekSettingsScreen}
-				options={{ title: getStr("deepseek") }}
-			/>
-			<Stack.Screen
-				name="ScheduleSettings"
-				component={ScheduleSettingsScreen}
-				options={{title: getStr("scheduleSettings")}}
 			/>
 			<Stack.Screen
 				name="Privacy"
