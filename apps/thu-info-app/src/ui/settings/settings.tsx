@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import {Snackbar} from "react-native-snackbar";
 import {setDormPassword} from "../../redux/slices/credentials";
-import {scheduleClear} from "../../redux/slices/schedule";
 import {login, logout} from "../../redux/slices/auth";
 import {RoundedView} from "../../components/views";
 import themedStyles from "../../utils/themedStyles";
@@ -28,7 +27,6 @@ import {
 } from "../../redux/slices/reservation";
 import {gt} from "semver";
 import {setBalance} from "../../redux/slices/campusCard";
-import { deepseekClear } from "../../redux/slices/deepseek.ts";
 import useDetailNavigator from "../../utils/useDetailNavigator";
 import {StackActions} from "@react-navigation/native";
 
@@ -204,8 +202,6 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 												performLogout();
 												dispatch(logout());
 												dispatch(setDormPassword(""));
-												dispatch(scheduleClear());
-												dispatch(deepseekClear());
 												dispatch(setActiveLibBookRecord([]));
 												dispatch(setActiveSportsReservationRecord([]));
 												dispatch(setBalance(0));

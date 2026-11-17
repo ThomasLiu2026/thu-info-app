@@ -4,7 +4,6 @@ import {addUsageStat, FunctionType} from "../utils/webApi";
 import themes from "../assets/themes/themes";
 import {TouchableOpacity, useColorScheme, View} from "react-native";
 import {HomeScreen} from "../ui/home/home";
-import type {ChannelTag, NewsSlice} from "@thu-info/lib/src/models/news/news";
 import {SettingsScreen} from "../ui/settings/settings";
 import {
 	createStackNavigator,
@@ -18,7 +17,6 @@ import {
 } from "@thu-info/lib/src/models/home/library";
 import {SearchResultItem} from "@thu-info/lib/src/models/home/reserves-lib";
 import {SportsIdInfo} from "@thu-info/lib/src/models/home/sports";
-import type {ScheduleDetailProps} from "../ui/schedule/scheduleDetail";
 import {ReportScreen} from "../ui/home/report";
 import {EvaluationScreen} from "../ui/home/evaluation";
 import {FormScreen} from "../ui/home/form";
@@ -114,12 +112,6 @@ type RootTabParamList = {
 	HomeTab: undefined;
 	SettingsTab: undefined;
 };
-
-type LegacyDeepSeekParamList = {
-	DeepSeekTab: {prompt: string; dataSource: ChannelTag} | undefined;
-};
-
-export type DeepSeekTabProp = RouteProp<LegacyDeepSeekParamList, "DeepSeekTab">;
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
@@ -287,39 +279,6 @@ export type WaterSelectTicketNumberProp = RouteProp<
 	"WaterSelectTicketNumber"
 >;
 
-// Retain legacy route parameter types for unmounted modules in src/ui/news & src/ui/schedule
-type LegacyNewsStackParamList = {
-	NewsDetail: {
-		detail: NewsSlice;
-		inFavInit: boolean;
-		setInFavFunc: any;
-		isFromFav?: boolean;
-		reloadFunc?: () => void;
-	};
-	NewsFav: {reloadFunc: () => void};
-	NewsSub: undefined;
-	NewsSubSourceSelect: undefined;
-	NewsSubChannelSelect: undefined;
-};
-
-export type NewsDetailRouteProp = RouteProp<
-	LegacyNewsStackParamList,
-	"NewsDetail"
->;
-
-export type NewsFavRouteProp = RouteProp<LegacyNewsStackParamList, "NewsFav">;
-
-type LegacyScheduleStackParamList = {
-	ScheduleHidden: undefined;
-	ScheduleDetail: ScheduleDetailProps;
-	ScheduleSync: {isSending: boolean};
-};
-
-export type ScheduleDetailRouteProp = RouteProp<
-	LegacyScheduleStackParamList,
-	"ScheduleDetail"
->;
-
 type SettingsStackParamList = {
 	Login: undefined;
 	TwoFactorAuth: {
@@ -359,8 +318,6 @@ export type DigitalPasswordRouteProp = RouteProp<
 >;
 
 export type RootStackParamList = {RootTabs: undefined} & HomeStackParamList &
-	LegacyNewsStackParamList &
-	LegacyScheduleStackParamList &
 	SettingsStackParamList;
 
 const Stack = createStackNavigator<RootStackParamList>();
