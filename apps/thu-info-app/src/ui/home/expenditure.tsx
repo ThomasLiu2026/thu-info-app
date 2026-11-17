@@ -1461,7 +1461,9 @@ export const ExpenditureScreen = ({
 												color: colors.text,
 											}}
 											numberOfLines={1}>
-											{item.merchant}
+											{item.mergedMerchants && item.mergedMerchants.length > 1
+												? item.mergedMerchants.join(" + ")
+												: item.merchant}
 										</Text>
 										<View
 											style={{
@@ -1575,7 +1577,10 @@ export const ExpenditureScreen = ({
 									fontSize: 14,
 									fontWeight: "500",
 								}}>
-								{editingItem.merchant}
+								{editingItem.mergedMerchants &&
+								editingItem.mergedMerchants.length > 1
+									? editingItem.mergedMerchants.join(" + ")
+									: editingItem.merchant}
 							</Text>
 							<Text
 								style={{
@@ -1606,20 +1611,28 @@ export const ExpenditureScreen = ({
 												paddingVertical: 13,
 											}}
 											onPress={() => {
-												if (editingItem.merchant) {
-													const autoCat = classifyExpenditureByKeywords(
-														editingItem.tx,
-													);
+												const targets =
+													editingItem.mergedMerchants &&
+													editingItem.mergedMerchants.length > 0
+														? editingItem.mergedMerchants
+														: editingItem.merchant
+														  ? [editingItem.merchant]
+														  : [];
+												for (const targetMerchant of targets) {
+													const autoCat = classifyExpenditureByKeywords({
+														...editingItem.tx,
+														name: targetMerchant,
+													});
 													dispatch(
 														setMerchantCategoryOverride({
-															merchant: editingItem.merchant,
+															merchant: targetMerchant,
 															category: cat === autoCat ? undefined : cat,
 														}),
 													);
 													if (cat !== "other") {
 														dispatch(
 															setOtherMerchantSubcategory({
-																merchant: editingItem.merchant,
+																merchant: targetMerchant,
 																subCategory: undefined,
 															}),
 														);
@@ -1680,20 +1693,28 @@ export const ExpenditureScreen = ({
 														: colors.themeBackground,
 												}}
 												onPress={() => {
-													if (editingItem.merchant) {
-														const autoCat = classifyExpenditureByKeywords(
-															editingItem.tx,
-														);
+													const targets =
+														editingItem.mergedMerchants &&
+														editingItem.mergedMerchants.length > 0
+															? editingItem.mergedMerchants
+															: editingItem.merchant
+															  ? [editingItem.merchant]
+															  : [];
+													for (const targetMerchant of targets) {
+														const autoCat = classifyExpenditureByKeywords({
+															...editingItem.tx,
+															name: targetMerchant,
+														});
 														dispatch(
 															setMerchantCategoryOverride({
-																merchant: editingItem.merchant,
+																merchant: targetMerchant,
 																category:
 																	autoCat === "other" ? undefined : "other",
 															}),
 														);
 														dispatch(
 															setOtherMerchantSubcategory({
-																merchant: editingItem.merchant,
+																merchant: targetMerchant,
 																subCategory: subActive ? undefined : sub,
 															}),
 														);
@@ -1724,16 +1745,23 @@ export const ExpenditureScreen = ({
 										alignItems: "center",
 									}}
 									onPress={() => {
-										if (editingItem.merchant) {
+										const targets =
+											editingItem.mergedMerchants &&
+											editingItem.mergedMerchants.length > 0
+												? editingItem.mergedMerchants
+												: editingItem.merchant
+												  ? [editingItem.merchant]
+												  : [];
+										for (const targetMerchant of targets) {
 											dispatch(
 												setMerchantCategoryOverride({
-													merchant: editingItem.merchant,
+													merchant: targetMerchant,
 													category: undefined,
 												}),
 											);
 											dispatch(
 												setOtherMerchantSubcategory({
-													merchant: editingItem.merchant,
+													merchant: targetMerchant,
 													subCategory: undefined,
 												}),
 											);

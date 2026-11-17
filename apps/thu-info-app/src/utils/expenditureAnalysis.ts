@@ -52,24 +52,25 @@ const EXPLICIT_OTHER_KEYWORDS =
 	/天猫|超市|便利|小卖部|商贸|书店|文具|眼镜|纪念品|照相|理发|美发|游泳|体育|羽毛球|乒乓|网球|篮球|健身|气膜|冰场|场馆|洗衣|烘干|洗鞋|电费|购电|网费|网络|打印|复印|文印|自助机|校车|摆渡车|医院|医疗|药房|门诊|挂号|体检|图书馆|赔书|党费|团费|补卡|工本费/;
 
 const DINING_KEYWORDS =
-	/紫荆园|桃李园|清芬园|听涛园|观畴园|万人|丁香园|芝兰园|玉树园|荷园|澜园|寓园|家园|南园|北园|融园|熙春园|近春园|双清|甲所|丙所|清青|食堂|餐厅|餐饮|饮食|膳食|美食|快餐|风味|基本伙|自选|香锅|麻辣烫|牛拉|拉面|面馆|粉|饺|包|饼|粥|饭|菜|烤|炸鸡|汉堡|西餐|披萨|比萨|咖啡|瑞幸|星巴克|水吧|奶茶|茶饮|冷饮|热饮|饮品|甜品|烘焙|面包|蛋糕|酸奶|水果|夜宵|早点|早餐|午餐|晚餐/;
+	/紫荆园|桃李园|清芬园|听涛园|观畴园|万人|丁香园|芝兰园|玉树园|荷园|澜园|寓园|家园|南园|北园|融园|熙春园|近春园|洁华园|双清|甲所|丙所|清青|食堂|餐厅|餐饮|饮食|膳食|美食|快餐|风味|基本伙|自选|香锅|麻辣烫|牛拉|拉面|面馆|粉|饺|包|饼|粥|饭|菜|烤|炸鸡|汉堡|西餐|披萨|比萨|咖啡|瑞幸|星巴克|水吧|奶茶|茶饮|冷饮|热饮|饮品|甜品|烘焙|面包|蛋糕|酸奶|水果|夜宵|早点|早餐|午餐|晚餐/;
 
 // Canonical Tsinghua canteens (matched at canteen level, ignoring stall/floor suffixes).
 const CANONICAL_CANTEENS: readonly {pattern: RegExp; name: string}[] = [
-	{pattern: /紫荆园/, name: "紫荆园"},
-	{pattern: /桃李园/, name: "桃李园"},
-	{pattern: /清芬园/, name: "清芬园"},
-	{pattern: /听涛园/, name: "听涛园"},
-	{pattern: /观畴园|万人/, name: "观畴园"},
-	{pattern: /丁香园/, name: "丁香园"},
-	{pattern: /芝兰园/, name: "芝兰园"},
-	{pattern: /玉树园/, name: "玉树园"},
+	{pattern: /紫荆园|紫荆餐厅/, name: "紫荆园"},
+	{pattern: /桃李园|桃李餐厅/, name: "桃李园"},
+	{pattern: /清芬园|清芬餐厅/, name: "清芬园"},
+	{pattern: /听涛园|听涛餐厅/, name: "听涛园"},
+	{pattern: /观畴园|观畴餐厅|万人/, name: "观畴园"},
+	{pattern: /丁香园|丁香餐厅/, name: "丁香园"},
+	{pattern: /芝兰园|芝兰餐厅/, name: "芝兰园"},
+	{pattern: /玉树园|玉树餐厅/, name: "玉树园"},
 	{pattern: /荷园/, name: "荷园"},
 	{pattern: /澜园/, name: "澜园"},
 	{pattern: /寓园/, name: "寓园"},
 	{pattern: /融园/, name: "融园"},
-	{pattern: /熙春园/, name: "熙春园"},
+	{pattern: /熙春园|熙春餐厅/, name: "熙春园"},
 	{pattern: /近春园/, name: "近春园"},
+	{pattern: /洁华园/, name: "洁华园"},
 	{pattern: /南园/, name: "南园"},
 	{pattern: /北园/, name: "北园"},
 	{pattern: /家园/, name: "家园"},
@@ -165,11 +166,12 @@ export const extractCanteenName = (
 
 	if (segments.length > 0) {
 		const cleaned = segments[0]
-			.replace(/(地下)?([一二三四五六1-6Bb][层楼]|[东西南北中]厅)$/g, "")
+			.replace(/(?:地下)?(?:[一二三四五六1-6Bb][层楼]|[东西南北中]厅).*$/g, "")
 			.trim();
 		if (cleaned.length > 0) {
 			return cleaned;
 		}
+		return segments[0];
 	}
 	return fallbackLabel;
 };
@@ -293,6 +295,7 @@ export interface CategorizedTransaction {
 	category: ExpenditureCategory;
 	isOverridden: boolean;
 	mergedCount?: number;
+	mergedMerchants?: string[];
 	showerSubCategory?: ShowerSubCategory;
 	mealPeriod?: MealPeriod;
 	canteen?: string;
@@ -368,6 +371,7 @@ export const analyzeMonthlyExpenditure = (
 		startTimeMs: number;
 		lastTimeMs: number;
 		mergedCount: number;
+		mergedMerchants: string[];
 	}
 
 	const rawCandidates: RawConsumptionSession[] = [];
@@ -394,10 +398,11 @@ export const analyzeMonthlyExpenditure = (
 			startTimeMs: timeMs,
 			lastTimeMs: timeMs,
 			mergedCount: 1,
+			mergedMerchants: merchant ? [merchant] : [],
 		});
 	}
 
-	// Sort chronologically ascending so <= 30 min same-merchant dining/water swipes merge cleanly.
+	// Sort chronologically ascending so <= 30 min same-canteen dining or same-merchant water swipes merge cleanly.
 	rawCandidates.sort((a, b) => {
 		if (Number.isNaN(a.startTimeMs) || Number.isNaN(b.startTimeMs)) {
 			return 0;
@@ -411,7 +416,11 @@ export const analyzeMonthlyExpenditure = (
 	for (const candidate of rawCandidates) {
 		const isMergeableCategory =
 			candidate.category === "dining" || candidate.category === "water";
-		const payeeKey = normalizePayeeForMerge(candidate.merchant);
+		const payeeKey =
+			candidate.category === "dining"
+				? extractCanteenName(candidate.tx, "") ||
+				  normalizePayeeForMerge(candidate.merchant)
+				: normalizePayeeForMerge(candidate.merchant);
 		if (
 			isMergeableCategory &&
 			payeeKey &&
@@ -427,19 +436,40 @@ export const analyzeMonthlyExpenditure = (
 				prevSession.absCents += candidate.absCents;
 				prevSession.lastTimeMs = candidate.startTimeMs;
 				prevSession.mergedCount += 1;
+				prevSession.isOverridden =
+					prevSession.isOverridden || candidate.isOverridden;
+				if (
+					candidate.merchant &&
+					!prevSession.mergedMerchants.includes(candidate.merchant)
+				) {
+					prevSession.mergedMerchants.push(candidate.merchant);
+				}
 				continue;
 			}
-			const session = {...candidate};
+			const session = {
+				...candidate,
+				mergedMerchants: [...candidate.mergedMerchants],
+			};
 			mergedSessions.push(session);
 			lastMergeableByKey.set(mergeKey, session);
 		} else {
-			mergedSessions.push({...candidate});
+			mergedSessions.push({
+				...candidate,
+				mergedMerchants: [...candidate.mergedMerchants],
+			});
 		}
 	}
 
 	for (const session of mergedSessions) {
-		const {tx, merchant, category, isOverridden, absCents, mergedCount} =
-			session;
+		const {
+			tx,
+			merchant,
+			category,
+			isOverridden,
+			absCents,
+			mergedCount,
+			mergedMerchants,
+		} = session;
 		centsByCat[category] += absCents;
 		countByCat[category] += 1;
 		totalCents += absCents;
@@ -454,6 +484,8 @@ export const analyzeMonthlyExpenditure = (
 			category,
 			isOverridden,
 			mergedCount,
+			mergedMerchants:
+				mergedMerchants.length > 1 ? mergedMerchants : undefined,
 		};
 
 		if (category === "shower") {
