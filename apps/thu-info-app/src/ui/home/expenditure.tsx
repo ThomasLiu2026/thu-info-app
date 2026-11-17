@@ -1491,6 +1491,9 @@ export const ExpenditureScreen = ({
 												/>
 												<Text style={{fontSize: 11, color: colors.fontB2}}>
 													{detailBadge}
+													{item.mergedCount && item.mergedCount > 1
+														? ` · ${getStr("mergedSwipesPrefix")}${item.mergedCount}${getStr("mergedSwipesSuffix")}`
+														: ""}
 													{item.isOverridden
 														? ` · ${getStr("customClassified")}`
 														: ""}

@@ -276,6 +276,8 @@ export default {
 	changeMerchantCategoryHint: "同名商户的所有消费记录将自动归入所选分类",
 	resetAutoCategory: "恢复自动识别",
 	customClassified: "已手动归类",
+	mergedSwipesPrefix: "合并 ",
+	mergedSwipesSuffix: " 笔",
 	noExpenditureInMonth: "本月暂无消费记录",
 	query: "查询",
 	querying: "查询中",

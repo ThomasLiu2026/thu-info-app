@@ -20,6 +20,9 @@ export const MEAL_PERIODS: readonly MealPeriod[] = [
 // <= 0.16 CNY (16 cents) is classified as foot-washing ("洗脚"), > 0.16 CNY as shower ("洗澡").
 export const FOOT_WASH_MAX_CENTS = 16;
 
+// Consecutive dining or drinking-water transactions from the same merchant within 30 minutes merge into one.
+export const MERGE_WINDOW_MS = 30 * 60 * 1000;
+
 // Validated via dataviz/scripts/validate_palette.js against #FFFFFF (light) and #222222 (dark):
 // Passes lightness band, chroma floor, CVD separation (ΔE >= 17.3), normal-vision floor (ΔE >= 20.9), and >= 3:1 surface contrast.
 export const CATEGORY_PALETTE_LIGHT: Record<ExpenditureCategory, string> = {
@@ -252,6 +255,7 @@ export interface CategorizedTransaction {
 	merchant: string;
 	category: ExpenditureCategory;
 	isOverridden: boolean;
+	mergedCount?: number;
 	showerSubCategory?: ShowerSubCategory;
 	mealPeriod?: MealPeriod;
 	canteen?: string;
@@ -318,6 +322,18 @@ export const analyzeMonthlyExpenditure = (
 	const items: CategorizedTransaction[] = [];
 	let totalCents = 0;
 
+	interface RawConsumptionSession {
+		tx: CardTransaction;
+		merchant: string;
+		category: ExpenditureCategory;
+		isOverridden: boolean;
+		absCents: number;
+		startTimeMs: number;
+		lastTimeMs: number;
+		mergedCount: number;
+	}
+
+	const rawCandidates: RawConsumptionSession[] = [];
 	for (const tx of transactions) {
 		if (isIncomeTransaction(tx)) {
 			continue;
@@ -330,6 +346,51 @@ export const analyzeMonthlyExpenditure = (
 			tx,
 			overrides,
 		);
+		const timeMs = new Date(tx.timestamp).getTime();
+		rawCandidates.push({
+			tx,
+			merchant,
+			category,
+			isOverridden,
+			absCents,
+			startTimeMs: timeMs,
+			lastTimeMs: timeMs,
+			mergedCount: 1,
+		});
+	}
+
+	// Sort chronologically ascending so <= 30 min same-merchant dining/water swipes merge cleanly.
+	rawCandidates.sort((a, b) => a.startTimeMs - b.startTimeMs);
+
+	const mergedSessions: RawConsumptionSession[] = [];
+	const lastMergeableByKey = new Map<string, RawConsumptionSession>();
+
+	for (const candidate of rawCandidates) {
+		const isMergeableCategory =
+			candidate.category === "dining" || candidate.category === "water";
+		if (isMergeableCategory && candidate.merchant) {
+			const mergeKey = `${candidate.category}::${candidate.merchant}`;
+			const prevSession = lastMergeableByKey.get(mergeKey);
+			if (
+				prevSession &&
+				candidate.startTimeMs - prevSession.lastTimeMs <= MERGE_WINDOW_MS
+			) {
+				prevSession.absCents += candidate.absCents;
+				prevSession.lastTimeMs = candidate.startTimeMs;
+				prevSession.mergedCount += 1;
+				continue;
+			}
+			const session = {...candidate};
+			mergedSessions.push(session);
+			lastMergeableByKey.set(mergeKey, session);
+		} else {
+			mergedSessions.push({...candidate});
+		}
+	}
+
+	for (const session of mergedSessions) {
+		const {tx, merchant, category, isOverridden, absCents, mergedCount} =
+			session;
 		centsByCat[category] += absCents;
 		countByCat[category] += 1;
 		totalCents += absCents;
@@ -343,6 +404,7 @@ export const analyzeMonthlyExpenditure = (
 			merchant,
 			category,
 			isOverridden,
+			mergedCount,
 		};
 
 		if (category === "shower") {

@@ -85,9 +85,15 @@ describe("expenditureAnalysis", () => {
 			makeTx("4", "饮食中心_紫荆园二层_基本伙", 18.0, {
 				timestamp: new Date(2026, 10, 10, 18, 5),
 			}),
-			makeTx("5", "紫荆2号楼_淋浴", 0.16),
-			makeTx("6", "紫荆2号楼_淋浴", 0.12),
-			makeTx("7", "紫荆2号楼_淋浴", 1.72),
+			makeTx("5", "紫荆2号楼_淋浴", 0.16, {
+				timestamp: new Date(2026, 10, 10, 21, 0),
+			}),
+			makeTx("6", "紫荆2号楼_淋浴", 0.12, {
+				timestamp: new Date(2026, 10, 10, 21, 5),
+			}),
+			makeTx("7", "紫荆2号楼_淋浴", 1.72, {
+				timestamp: new Date(2026, 10, 10, 22, 0),
+			}),
 			makeTx("8", "天猫校园", 10.0),
 		];
 
@@ -132,5 +138,52 @@ describe("expenditureAnalysis", () => {
 		);
 		expect(otherSubMap["超市"].amount).toBe(10);
 		expect(otherSubMap["文印"].amount).toBe(0);
+	});
+
+	test("merges same-merchant dining and drinking-water swipes within 30 minutes", () => {
+		const raw = [
+			// Two dining swipes at the exact same stall 3 minutes apart -> merged into 1
+			makeTx("d1", "桃李园一层_基本伙", 6.0, {
+				timestamp: new Date(2026, 10, 12, 12, 0),
+			}),
+			makeTx("d2", "桃李园一层_基本伙", 0.8, {
+				timestamp: new Date(2026, 10, 12, 12, 3),
+			}),
+			// Same stall 31 minutes after d2 -> NOT merged (new transaction)
+			makeTx("d3", "桃李园一层_基本伙", 10.0, {
+				timestamp: new Date(2026, 10, 12, 12, 34),
+			}),
+			// Different stall in same canteen 5 minutes after d1 -> NOT merged (different payee)
+			makeTx("d4", "桃李园一层_麻辣香锅", 15.0, {
+				timestamp: new Date(2026, 10, 12, 12, 5),
+			}),
+			// Two drinking-water swipes exactly 30 minutes apart -> merged into 1
+			makeTx("w1", "紫荆2号楼_直饮水", 0.2, {
+				timestamp: new Date(2026, 10, 12, 14, 0),
+			}),
+			makeTx("w2", "紫荆2号楼_直饮水", 0.3, {
+				timestamp: new Date(2026, 10, 12, 14, 30),
+			}),
+		];
+
+		const prepared = prepareMonthlyTransactions(raw);
+		const analysis = analyzeMonthlyExpenditure(prepared.data);
+
+		const catMap = Object.fromEntries(
+			analysis.categories.map((c) => [c.category, c]),
+		);
+		expect(catMap.dining.amount).toBe(31.8);
+		expect(catMap.dining.count).toBe(3); // (d1+d2), d3, d4
+
+		expect(catMap.water.amount).toBe(0.5);
+		expect(catMap.water.count).toBe(1); // (w1+w2)
+
+		const mergedDining = analysis.items.find((i) => i.tx.id === "d1");
+		expect(mergedDining?.tx.amount).toBe(-6.8);
+		expect(mergedDining?.mergedCount).toBe(2);
+
+		const mergedWater = analysis.items.find((i) => i.tx.id === "w1");
+		expect(mergedWater?.tx.amount).toBe(-0.5);
+		expect(mergedWater?.mergedCount).toBe(2);
 	});
 });

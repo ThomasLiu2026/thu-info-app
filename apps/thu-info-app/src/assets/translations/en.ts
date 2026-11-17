@@ -287,6 +287,8 @@ export default {
 		"All transactions from this merchant will use the selected category",
 	resetAutoCategory: "Reset to Auto",
 	customClassified: "Custom",
+	mergedSwipesPrefix: "Merged ",
+	mergedSwipesSuffix: "",
 	noExpenditureInMonth: "No expenditure records this month",
 	query: "Query",
 	querying: "Querying",
