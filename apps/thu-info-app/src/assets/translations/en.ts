@@ -73,7 +73,7 @@ export default {
 	functionManagement: "Features",
 	functionManagementTip: "Switch to enable/disable features",
 	homeFunctionOrder: "Home List Order",
-	homeFunctionOrderTip: "Customize the order of features on Home",
+	homeFunctionOrderTip: "Drag the left handle or tap buttons to reorder",
 	moveUp: "Up",
 	moveDown: "Down",
 	pinToTop: "Top",

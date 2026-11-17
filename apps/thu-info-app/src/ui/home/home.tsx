@@ -45,10 +45,7 @@ import {addUsageStat, FunctionType} from "../../utils/webApi";
 import {StackActions} from "@react-navigation/native";
 import {setCrTimetable} from "../../redux/slices/timetable";
 import {getStatusBarHeight} from "react-native-safearea-height";
-import {
-	toggleReadStatus,
-	updateAnnouncements,
-} from "../../redux/slices/announcement";
+import {updateAnnouncements} from "../../redux/slices/announcement";
 import {setBalance} from "../../redux/slices/campusCard";
 import {gt} from "semver";
 import VersionNumber from "react-native-version-number";
@@ -314,44 +311,6 @@ export const HOME_FUNCTION_META: Record<ManagedHomeFunction, HomeFunctionMeta> =
 		},
 	};
 
-export const AnnouncementSection = () => {
-	const themeName = useColorScheme();
-	const {colors} = themes(themeName);
-	const style = styles(themeName);
-	const dispatch = useDispatch();
-	const announcements = useSelector(
-		(s: State) => s.announcement.announcements,
-	).filter(
-		({visibleNotAfter, visibleExact}) =>
-			visibleNotAfter === undefined ||
-			visibleExact === undefined ||
-			!gt(VersionNumber.appVersion, visibleNotAfter) ||
-			visibleExact.split(",").includes(VersionNumber.appVersion),
-	);
-	if (announcements.length === 0) {
-		return null;
-	}
-
-	return (
-		<View style={style.SectionContainer}>
-			<Text style={style.SectionTitle}>{getStr("announcements")}</Text>
-			<View style={style.SectionContentContainer}>
-				{announcements.map(({id, read, title, content}) => (
-					<TouchableOpacity
-						onPress={() => dispatch(toggleReadStatus(id))}
-						style={{marginTop: 8, marginHorizontal: 8}}
-						key={id}>
-						<Text style={{fontWeight: "bold", color: colors.text}}>
-							{title} {read ? "(已读)" : ""}
-						</Text>
-						{!read && <Text style={{color: colors.fontB2}}>{content}</Text>}
-					</TouchableOpacity>
-				))}
-			</View>
-		</View>
-	);
-};
-
 export const HomeReservationSection = () => {
 	const themeName = useColorScheme();
 	const style = styles(themeName);
@@ -592,7 +551,6 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 				}}
 				contentContainerStyle={showUpdateBanner ? {paddingTop: 76} : undefined}
 				key={String(darkModeHook)}>
-				<AnnouncementSection />
 				<HomeReservationSection />
 				<View style={{marginHorizontal: 12, marginTop: 12}}>
 					<RoundedView style={{paddingVertical: 8}}>

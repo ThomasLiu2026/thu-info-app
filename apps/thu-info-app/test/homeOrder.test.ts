@@ -3,6 +3,7 @@ import {
 	getEffectiveHomeFunctionOrder,
 	getVisibleHomeFunctions,
 	moveVisibleHomeFunction,
+	reorderVisibleHomeFunction,
 } from "../src/utils/homeOrder";
 
 describe("homeOrder", () => {
@@ -54,5 +55,19 @@ describe("homeOrder", () => {
 			"android",
 		);
 		expect(visibleAfterPin[0]).toBe("library");
+
+		// Dragging from index 0 to index 2 moves "library" right after "campusCard"
+		const dragged = reorderVisibleHomeFunction(
+			pinned,
+			disabled,
+			"android",
+			0,
+			2,
+		);
+		expect(getVisibleHomeFunctions(dragged, disabled, "android").slice(0, 3)).toEqual([
+			"washer",
+			"campusCard",
+			"library",
+		]);
 	});
 });

@@ -71,7 +71,7 @@ export default {
 	functionManagement: "功能管理",
 	functionManagementTip: "管理在「主页」出现的功能",
 	homeFunctionOrder: "主页列表排序",
-	homeFunctionOrderTip: "自由调整「主页」功能列表的先后顺序",
+	homeFunctionOrderTip: "按住左侧把手上下拖动，或点击右侧按钮调整顺序",
 	moveUp: "上移",
 	moveDown: "下移",
 	pinToTop: "置顶",

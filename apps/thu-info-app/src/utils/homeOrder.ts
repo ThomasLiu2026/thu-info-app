@@ -146,3 +146,32 @@ export const moveVisibleHomeFunction = (
 
 	return [...nextVisible, ...hidden];
 };
+
+export const reorderVisibleHomeFunction = (
+	savedOrder: readonly string[] | undefined,
+	disabledList: readonly string[] | undefined,
+	platformOS: string,
+	fromIndex: number,
+	toIndex: number,
+): ManagedHomeFunction[] => {
+	const effective = getEffectiveHomeFunctionOrder(savedOrder, platformOS);
+	const disabledSet = new Set(disabledList ?? []);
+	const visible = effective.filter((f) => !disabledSet.has(f));
+	const hidden = effective.filter((f) => disabledSet.has(f));
+
+	if (
+		fromIndex < 0 ||
+		fromIndex >= visible.length ||
+		toIndex < 0 ||
+		toIndex >= visible.length ||
+		fromIndex === toIndex
+	) {
+		return effective;
+	}
+
+	const nextVisible = [...visible];
+	const [moved] = nextVisible.splice(fromIndex, 1);
+	nextVisible.splice(toIndex, 0, moved);
+
+	return [...nextVisible, ...hidden];
+};
