@@ -63,6 +63,8 @@ Implementation rules:
 - Do not assume a flat `Cookie` header is equivalent to browser behavior once WebVPN is proxying the target site.
 - If Node.js behavior diverges only after `helper.login()` returns, inspect the redirect/cookie behavior inside the portal-roaming stage before changing higher-level API code.
 - Do not add a new ad hoc login sequence if the problem is really "this API belongs behind an existing roam step". Extend or reuse `roam()` / `roamingWrapper*()` instead.
+- When parsing upstream timestamps into `Date` objects (e.g., SQL `"YYYY-MM-DD HH:mm:ss"` strings from campus card or portal APIs), parse numeric components explicitly rather than passing non-ISO strings to `new Date(str)` so Android Hermes does not produce `Invalid Date`.
+- Match workspace lint rules: 4-space indentation, double quotes, and trailing semicolons.
 
 ## Validation
 
@@ -86,3 +88,4 @@ Implementation rules:
 - Do not compare only request bodies between Node.js and React Native. Cookie presence, redirect handling, and platform fetch behavior can be the real difference.
 - Do not assume the legacy csrf bootstrap endpoint is the only thing broken. If it returns empty, verify whether the real regression is earlier in the roam/cookie chain before rewriting callers around that symptom.
 - Do not read `roam()` as "just redirect to a page". In practice it is often the step that creates the target system's usable session.
+- Do not treat Node.js/Jest `Date` parsing tests as proof of Android compatibility when inputs are space-separated non-ISO date strings; Hermes strictly rejects formats that V8 accepts.

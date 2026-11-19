@@ -51,3 +51,12 @@ Implementation rules:
 - Do not treat React Native issues as browser problems; the main complexity here is multi-platform integration, not DOM behavior.
 - Do not assume Android, iOS, and Harmony behave identically around permissions, cookies, WebView, or native bridges.
 - Do not report an app fix as complete if only one platform path was checked for a platform-sensitive change.
+- Do not pass space-separated SQL date strings (e.g., `"YYYY-MM-DD HH:mm:ss"`) to `new Date(str)`: Node/Jest (V8) parses them, but Android Hermes produces `Invalid Date` (`NaN`). Always parse numeric date components explicitly and test raw string inputs.
+- Do not assume deleting JS pages reduces APK size materially, and do not enable `shrinkResources true` without keep rules (breaks dynamic RN drawable lookup).
+
+## Custom Fork Invariants
+
+- **CI-Only Signing & Coexistence**: Keep `verifySignature()` removal, `debug.keystore` release signing, and side-by-side `applicationId` (`com.unidy2002.thuinfo.custom` / `THU Info Custom`) confined to the CI build copy in `.github/workflows/custom-android.yml`. Never commit disabled signature checks into `MainApplication.kt` or substitute official precompiled APKs.
+- **Single-ABI Android Packaging**: Keep both `reactNativeArchitectures=arm64-v8a` (`android/gradle.properties`) and `ndk { abiFilters "arm64-v8a" }` (`android/app/build.gradle`) in sync so prebuilt AARs do not package `armeabi-v7a`/`x86`/`x86_64` `.so` files.
+- **Retained Custom Scope**: Preserve the Tsinghua seal launcher icon (`#660974` + CI crisp legacy PNGs), 2-tab layout (`HomeTab` + `SettingsTab`), electronic invoice PDF viewer (`react-native-pdf`), and campus card Bill Analysis rules (30-min same-canteen dining merge, 30-min same-merchant water merge, `<= 0.16` CNY foot-wash split, subcategories hidden on analysis home).
+- **Code & Pruning Invariants**: Enforce ESLint double quotes (`quotes: ["error", "double"]`), zero unused imports/vars, exact `src/assets/translations/zh.ts` vs `en.ts` key parity (`test/i18n.test.ts`), and immutable numeric enum ordering in `src/utils/webApi.ts` (`FunctionType`). Check shared cross-feature imports (e.g., `washer.tsx` -> `components/news/IconStarButton`, `classroomDetail.tsx` -> `utils/calendar.ts` `explainWeekAndDay`) and root `patches/*.patch` before deleting files or packages.
