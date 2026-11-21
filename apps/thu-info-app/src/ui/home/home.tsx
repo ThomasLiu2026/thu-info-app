@@ -374,8 +374,12 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 
 	const pinnedFunctions = useMemo(
 		() =>
-			getPinnedHomeFunctions(homePinnedFunctions, disabledList, Platform.OS),
-		[homePinnedFunctions, disabledList],
+			getPinnedHomeFunctions(
+				homePinnedFunctions,
+				disabledList,
+				Platform.OS,
+			).filter((f) => !(showCampusHero && f === "campusCard")),
+		[homePinnedFunctions, disabledList, showCampusHero],
 	);
 
 	const drawerFunctions = useMemo(
@@ -385,8 +389,8 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 				homeFunctionOrder,
 				disabledList,
 				Platform.OS,
-			),
-		[homePinnedFunctions, homeFunctionOrder, disabledList],
+			).filter((f) => !(showCampusHero && f === "campusCard")),
+		[homePinnedFunctions, homeFunctionOrder, disabledList, showCampusHero],
 	);
 
 	const drawerGroups = useMemo(() => {
@@ -551,90 +555,44 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 				paddingTop: statusTop,
 				backgroundColor: theme.colors.themeBackground,
 			}}>
-			{/* Top Header Bar */}
+			{/* Top Header Bar (clean wordmark only — drawer lives at bottom below grid) */}
 			<View
 				style={{
 					flexDirection: "row",
 					alignItems: "center",
-					justifyContent: "space-between",
 					paddingHorizontal: 18,
 					paddingTop: 14,
 					paddingBottom: 10,
 				}}>
-				<View style={{flexDirection: "row", alignItems: "center"}}>
-					<View
-						style={{
-							width: 34,
-							height: 34,
-							borderRadius: 10,
-							backgroundColor: theme.colors.heroCardBg,
-							alignItems: "center",
-							justifyContent: "center",
-							marginRight: 10,
-						}}>
-						<Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-							<Path
-								d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z M12 12l8-4.5 M12 12v9 M12 12L4 7.5"
-								stroke="#FFFFFF"
-								strokeWidth={2}
-								strokeLinecap="round"
-								strokeLinejoin="round"
-							/>
-						</Svg>
-					</View>
-					<Text
-						style={{
-							fontSize: 20,
-							fontWeight: "700",
-							color: theme.colors.text,
-							letterSpacing: -0.3,
-						}}>
-						THU Info
-					</Text>
-				</View>
-
-				<TouchableOpacity
-					activeOpacity={0.78}
-					onPress={openDrawer}
+				<View
 					style={{
-						minHeight: 40,
-						paddingHorizontal: 13,
-						borderRadius: 12,
-						borderWidth: 1,
-						borderColor: theme.colors.softBorder,
-						backgroundColor: theme.colors.contentBackground,
-						flexDirection: "row",
+						width: 34,
+						height: 34,
+						borderRadius: 10,
+						backgroundColor: theme.colors.heroCardBg,
 						alignItems: "center",
+						justifyContent: "center",
+						marginRight: 10,
 					}}>
-					<Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+					<Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
 						<Path
-							d="M4 6h16 M4 12h16 M4 18h10"
-							stroke={theme.colors.primary}
+							d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z M12 12l8-4.5 M12 12v9 M12 12L4 7.5"
+							stroke="#FFFFFF"
 							strokeWidth={2}
 							strokeLinecap="round"
 							strokeLinejoin="round"
 						/>
 					</Svg>
-					<Text
-						style={{
-							fontSize: 13,
-							fontWeight: "600",
-							color: theme.colors.text,
-							marginLeft: 6,
-						}}>
-						{getStr("drawerShortLabel")}
-					</Text>
-					<Text
-						style={{
-							fontSize: 12,
-							fontWeight: "700",
-							color: theme.colors.primary,
-							marginLeft: 6,
-							fontVariant: ["tabular-nums"],
-						}}>
-						{drawerFunctions.length}
-					</Text>
-				</TouchableOpacity>
+				</View>
+				<Text
+					style={{
+						fontSize: 20,
+						fontWeight: "700",
+						color: theme.colors.text,
+						letterSpacing: -0.3,
+					}}>
+					THU Info
+				</Text>
 			</View>
 
 			<ScrollView
@@ -765,9 +723,6 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 				{/* Pinned Common Apps Springboard Grid */}
 				<View
 					style={{
-						flexDirection: "row",
-						alignItems: "center",
-						justifyContent: "space-between",
 						paddingHorizontal: 4,
 						marginBottom: 10,
 					}}>
@@ -779,19 +734,6 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 						}}>
 						{getStr("pinnedHomeSection")}
 					</Text>
-					<TouchableOpacity
-						activeOpacity={0.75}
-						onPress={() => navigation.navigate("HomeFunctionOrder")}
-						style={{paddingVertical: 4, paddingHorizontal: 4}}>
-						<Text
-							style={{
-								fontSize: 13,
-								fontWeight: "600",
-								color: theme.colors.primary,
-							}}>
-							{getStr("manageCommonApps")}
-						</Text>
-					</TouchableOpacity>
 				</View>
 
 				<View
@@ -804,8 +746,7 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 						paddingHorizontal: 8,
 					}}>
 					{pinnedFunctions.length === 0 ? (
-						<TouchableOpacity
-							onPress={() => navigation.navigate("HomeFunctionOrder")}
+						<View
 							style={{
 								paddingVertical: 26,
 								paddingHorizontal: 16,
@@ -819,7 +760,7 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 								}}>
 								{getStr("pinnedEmptyHint")}
 							</Text>
-						</TouchableOpacity>
+						</View>
 					) : (
 						<View style={{flexDirection: "row", flexWrap: "wrap"}}>
 							{pinnedFunctions.map((funcKey) => {
@@ -1068,29 +1009,6 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 								))
 							)}
 						</ScrollView>
-
-						<TouchableOpacity
-							activeOpacity={0.82}
-							onPress={() =>
-								closeDrawer(() => navigation.navigate("HomeFunctionOrder"))
-							}
-							style={{
-								marginTop: 10,
-								minHeight: 44,
-								borderRadius: 12,
-								backgroundColor: theme.colors.softTintBg,
-								alignItems: "center",
-								justifyContent: "center",
-							}}>
-							<Text
-								style={{
-									fontSize: 13,
-									fontWeight: "600",
-									color: theme.colors.primary,
-								}}>
-								{`${getStr("commonAppsManagement")} →`}
-							</Text>
-						</TouchableOpacity>
 					</Animated.View>
 				</View>
 			</Modal>

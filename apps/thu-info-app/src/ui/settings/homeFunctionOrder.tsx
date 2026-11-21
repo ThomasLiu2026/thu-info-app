@@ -58,7 +58,11 @@ export const HomeFunctionOrderScreen = () => {
 
 	const pinnedList = useMemo(
 		() =>
-			getPinnedHomeFunctions(homePinnedFunctions, disabledList, Platform.OS),
+			getPinnedHomeFunctions(
+				homePinnedFunctions,
+				disabledList,
+				Platform.OS,
+			).filter((f) => f !== "campusCard"),
 		[homePinnedFunctions, disabledList],
 	);
 
@@ -69,7 +73,7 @@ export const HomeFunctionOrderScreen = () => {
 				homeFunctionOrder,
 				disabledList,
 				Platform.OS,
-			),
+			).filter((f) => f !== "campusCard"),
 		[homePinnedFunctions, homeFunctionOrder, disabledList],
 	);
 

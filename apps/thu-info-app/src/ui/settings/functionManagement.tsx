@@ -6,7 +6,6 @@ import {
 	ScrollView,
 	Switch,
 	Text,
-	TouchableOpacity,
 	useColorScheme,
 	View,
 } from "react-native";
@@ -22,8 +21,6 @@ import {
 	isFunctionSupportedOnPlatform,
 	ManagedHomeFunction,
 } from "../../utils/homeOrder";
-import {RootNav} from "../../components/Root";
-import IconRight from "../../assets/icons/IconRight";
 
 type FunctionGroupKey =
 	| "functionManagementTip"
@@ -79,11 +76,7 @@ const FunctionItem = ({
 	);
 };
 
-export const FunctionManagementScreen = ({
-	navigation,
-}: {
-	navigation: RootNav;
-}) => {
+export const FunctionManagementScreen = () => {
 	const themeName = useColorScheme();
 	useSelector((s: State) => s.config.themePreset);
 	useSelector((s: State) => s.config.darkMode);
@@ -149,14 +142,6 @@ export const FunctionManagementScreen = ({
 
 	return (
 		<ScrollView style={{flex: 1, padding: 12}}>
-			<RoundedView style={[style.rounded, {marginTop: 4}]}>
-				<TouchableOpacity
-					style={style.touchable}
-					onPress={() => navigation.navigate("HomeFunctionOrder")}>
-					<Text style={style.text}>{getStr("commonAppsManagement")}</Text>
-					<IconRight height={20} width={20} />
-				</TouchableOpacity>
-			</RoundedView>
 			{(Object.keys(FUNCTION_GROUPS) as FunctionGroupKey[]).map(renderGroup)}
 			<View style={{height: 32}} />
 		</ScrollView>

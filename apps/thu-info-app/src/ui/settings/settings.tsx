@@ -71,7 +71,7 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 		homePinnedFunctions,
 		homeFunctionDisabled,
 		Platform.OS,
-	).length;
+	).filter((f) => f !== "campusCard").length;
 
 	const handleNavigate = (name: keyof RootStackParamList) => {
 		if (detailNavigator) {
