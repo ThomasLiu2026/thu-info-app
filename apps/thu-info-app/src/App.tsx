@@ -20,7 +20,7 @@ const RootComponent = () => {
 	const themeName = useColorScheme();
 	const dark = useSelector((s: State) => s.config.darkMode);
 	// Subscribe to themePreset so NavigationContainer & StatusBar update live.
-	const themePreset = useSelector((s: State) => s.config.themePreset);
+	useSelector((s: State) => s.config.themePreset);
 	const theme = themes(themeName);
 	const darkModeHook = Boolean(dark) || themeName === "dark";
 
