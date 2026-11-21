@@ -4,6 +4,7 @@ import {currState} from "../../redux/store";
 import {enableEasterEgg} from "../../utils/easterEgg";
 import {colorPkuDark} from "../colors/pkuDark";
 import {colorPkuLight} from "../colors/pkuLight";
+import {applyThemePreset} from "./presets";
 
 export interface ColorTheme {
 	primaryLight: string;
@@ -38,19 +39,27 @@ export interface ColorTheme {
 	themeTransparentGrey: string;
 	themeGold: string;
 	courseItemColorList: string[];
+	heroCardBg: string;
+	softTintBg: string;
+	softBorder: string;
+	drawerPillBg: string;
 }
 
 export interface Theme {
 	colors: ColorTheme;
 }
 
-export default (themeName: string | null | undefined): Theme => ({
-	colors:
-		currState().config.darkMode || themeName === "dark"
-			? enableEasterEgg()
-				? colorPkuDark
-				: colorDark
-			: enableEasterEgg()
-			? colorPkuLight
-			: colorLight,
-});
+export default (themeName: string | null | undefined): Theme => {
+	const cfg = currState().config;
+	const isDark = Boolean(cfg.darkMode) || themeName === "dark";
+	const base = isDark
+		? enableEasterEgg()
+			? colorPkuDark
+			: colorDark
+		: enableEasterEgg()
+		? colorPkuLight
+		: colorLight;
+	return {
+		colors: applyThemePreset(base, cfg.themePreset, isDark),
+	};
+};

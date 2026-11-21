@@ -25,10 +25,13 @@ import {
 	setActiveLibBookRecord,
 	setActiveSportsReservationRecord,
 } from "../../redux/slices/reservation";
-import {gt} from "semver";
 import {setBalance} from "../../redux/slices/campusCard";
 import useDetailNavigator from "../../utils/useDetailNavigator";
 import {StackActions} from "@react-navigation/native";
+import {getThemePreset} from "../../assets/themes/presets";
+import {getPinnedHomeFunctions, HomeFunction} from "../../utils/homeOrder";
+
+const EMPTY_DISABLED: HomeFunction[] = [];
 
 const performLogout = () => {
 	helper
@@ -49,13 +52,26 @@ const performLogout = () => {
 
 export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
+	const dark = useSelector((s: State) => s.config.darkMode);
+	const themePreset = useSelector((s: State) => s.config.themePreset);
+	const homePinnedFunctions = useSelector(
+		(s: State) => s.config.homePinnedFunctions,
+	);
+	const homeFunctionDisabled = useSelector(
+		(s: State) => s.config.homeFunctionDisabled ?? EMPTY_DISABLED,
+	);
 	const style = styles(themeName);
 	const theme = themes(themeName);
-	const dark = useSelector((s: State) => s.config.darkMode);
-	const darkModeHook = dark || themeName === "dark";
+	const darkModeHook = Boolean(dark) || themeName === "dark";
 	const {userId, password} = useSelector((s: State) => s.auth);
 	const dispatch = useDispatch();
 	const detailNavigator = useDetailNavigator();
+	const activePreset = getThemePreset(themePreset);
+	const pinnedCount = getPinnedHomeFunctions(
+		homePinnedFunctions,
+		homeFunctionDisabled,
+		Platform.OS,
+	).length;
 
 	const handleNavigate = (name: keyof RootStackParamList) => {
 		if (detailNavigator) {
@@ -69,18 +85,12 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 		}
 	};
 
-	const doNotRemindSemver =
-		useSelector((s: State) => s.config.doNotRemindSemver) ?? "0.0.0";
-	const latestVersion =
-		useSelector((s: State) => s.config.latestVersion) ?? "3.0.0";
-	const newVersionAvailable =
-		gt(latestVersion, VersionNumber.appVersion) &&
-		gt(latestVersion, doNotRemindSemver);
-
 	const [forceLoginDisabled, setForceLoginDisabled] = useState(false);
 	return (
-		<ScrollView>
-			<View style={{flex: 1, padding: 12}} key={String(darkModeHook)}>
+		<ScrollView style={{backgroundColor: theme.colors.themeBackground}}>
+			<View
+				style={{flex: 1, padding: 12}}
+				key={`${String(darkModeHook)}-${String(themePreset)}`}>
 				<RoundedView style={style.rounded}>
 					<TouchableOpacity
 						style={style.touchable}
@@ -92,15 +102,41 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 				<RoundedView style={style.rounded}>
 					<TouchableOpacity
 						style={style.touchable}
-						onPress={() => handleNavigate("FunctionManagement")}>
-						<Text style={style.text}>{getStr("functionManagement")}</Text>
-						<IconRight height={20} width={20} />
+						onPress={() => handleNavigate("HomeFunctionOrder")}>
+						<Text style={style.text}>{getStr("commonAppsManagement")}</Text>
+						<View style={{flexDirection: "row", alignItems: "center"}}>
+							<Text style={[style.version, {fontSize: 14, marginRight: 4}]}>
+								{`${pinnedCount}${getStr("itemsCountSuffix")}`}
+							</Text>
+							<IconRight height={20} width={20} />
+						</View>
 					</TouchableOpacity>
 					<View style={style.separator} />
 					<TouchableOpacity
 						style={style.touchable}
-						onPress={() => handleNavigate("HomeFunctionOrder")}>
-						<Text style={style.text}>{getStr("homeFunctionOrder")}</Text>
+						onPress={() => handleNavigate("ThemePreset")}>
+						<Text style={style.text}>{getStr("themeColorPreset")}</Text>
+						<View style={{flexDirection: "row", alignItems: "center"}}>
+							<View
+								style={{
+									width: 10,
+									height: 10,
+									borderRadius: 5,
+									backgroundColor: activePreset.swatch,
+									marginRight: 6,
+								}}
+							/>
+							<Text style={[style.version, {fontSize: 14, marginRight: 4}]}>
+								{getStr(activePreset.nameKey)}
+							</Text>
+							<IconRight height={20} width={20} />
+						</View>
+					</TouchableOpacity>
+					<View style={style.separator} />
+					<TouchableOpacity
+						style={style.touchable}
+						onPress={() => handleNavigate("FunctionManagement")}>
+						<Text style={style.text}>{getStr("functionManagement")}</Text>
 						<IconRight height={20} width={20} />
 					</TouchableOpacity>
 					<View style={style.separator} />
@@ -132,10 +168,7 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 						<Text style={style.text}>{getStr("aboutApp")}</Text>
 						<View style={{flexDirection: "row", alignItems: "center"}}>
 							<Text style={style.version}>
-								{getStr("version")}{" "}
-								{newVersionAvailable
-									? getStr("newVersionAvailable")
-									: VersionNumber.appVersion}
+								{getStr("version")} {VersionNumber.appVersion}
 							</Text>
 							<IconRight height={20} width={20} />
 						</View>

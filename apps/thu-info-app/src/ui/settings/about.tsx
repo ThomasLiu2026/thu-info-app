@@ -4,12 +4,9 @@ import {
 	StyleSheet,
 	Text,
 	TouchableOpacity,
+	useColorScheme,
 	View,
 } from "react-native";
-import {useEffect} from "react";
-import {useRoute} from "@react-navigation/native";
-import type {RouteProp} from "@react-navigation/native";
-import type {RootStackParamList} from "../../components/Root";
 import themes from "../../assets/themes/themes";
 import {getStr} from "../../utils/i18n";
 import {
@@ -26,8 +23,6 @@ import {
 	YONGQI_URL,
 } from "../../constants/strings";
 import VersionNumber from "react-native-version-number";
-import {useColorScheme} from "react-native";
-import {checkUpdate} from "../../utils/checkUpdate";
 
 const makeLinking = (url: string) =>
 	Linking.openURL(url).then(() =>
@@ -37,13 +32,6 @@ const makeLinking = (url: string) =>
 export const AboutScreen = () => {
 	const themeName = useColorScheme();
 	const theme = themes(themeName);
-	const route = useRoute<RouteProp<RootStackParamList, "About">>();
-
-	useEffect(() => {
-		if (route.params?.openCheckUpdate) {
-			checkUpdate(true);
-		}
-	}, [route.params?.openCheckUpdate]);
 
 	return (
 		<ScrollView style={{paddingTop: 5, paddingBottom: 20, flex: 1}}>
@@ -57,6 +45,13 @@ export const AboutScreen = () => {
 			<Text style={[styles.textStyle, {color: theme.colors.text}]}>
 				{`${getStr("currentVersion")}V${VersionNumber.appVersion}`}
 			</Text>
+			<Text
+				style={[
+					styles.textStyle,
+					{color: theme.colors.fontB2, fontSize: 13, paddingTop: 0},
+				]}>
+				{getStr("customVersionLocked")}
+			</Text>
 			<TouchableOpacity onPress={() => makeLinking(ICP_URL)}>
 				<Text
 					style={[
@@ -64,11 +59,6 @@ export const AboutScreen = () => {
 						{color: theme.colors.primaryLight, fontSize: 17},
 					]}>
 					京ICP备2021021102号-3A
-				</Text>
-			</TouchableOpacity>
-			<TouchableOpacity onPress={() => checkUpdate(true)}>
-				<Text style={[styles.textStyle, {color: theme.colors.primaryLight}]}>
-					{getStr("checkUpdate")}
 				</Text>
 			</TouchableOpacity>
 			<View style={{height: 10}} />

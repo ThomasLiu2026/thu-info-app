@@ -2,6 +2,7 @@ import {createSlice} from "@reduxjs/toolkit";
 import type {PayloadAction} from "@reduxjs/toolkit";
 import {ValidReceiptTypes} from "@thu-info/lib/src/lib/sports";
 import type {HomeFunction} from "../../utils/homeOrder";
+import type {ThemePresetId} from "../../assets/themes/presets";
 import {Semester} from "@thu-info/lib/src/models/schedule/calendar";
 import { v4 as uuidv4 } from "uuid";
 
@@ -37,6 +38,8 @@ export interface ConfigState {
 	subFunctionUnlocked: boolean | undefined;
 	homeFunctionDisabled: HomeFunction[];
 	homeFunctionOrder: HomeFunction[] | undefined;
+	homePinnedFunctions: HomeFunction[] | undefined;
+	themePreset: ThemePresetId | undefined;
 	beta3Notified: boolean | undefined;
 	studentNotified: boolean | undefined;
 	disableBackgroundSecurityWarning: boolean | undefined;
@@ -85,6 +88,8 @@ const initialState: ConfigState = {
 	subFunctionUnlocked: false,
 	homeFunctionDisabled: [],
 	homeFunctionOrder: undefined,
+	homePinnedFunctions: undefined,
+	themePreset: "tsinghuaPurple",
 	beta3Notified: false,
 	studentNotified: false,
 	disableBackgroundSecurityWarning: false,

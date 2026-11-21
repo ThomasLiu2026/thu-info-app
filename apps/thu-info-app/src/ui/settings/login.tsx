@@ -25,10 +25,7 @@ import {
 	setActiveSportsReservationRecord,
 } from "../../redux/slices/reservation";
 import {setCrTimetable} from "../../redux/slices/timetable";
-import {configSet} from "../../redux/slices/config";
-import {updateAnnouncements} from "../../redux/slices/announcement";
 import {setBalance} from "../../redux/slices/campusCard";
-import {gt} from "semver";
 import VersionNumber from "react-native-version-number";
 
 export const LoginScreen = ({navigation}: {navigation: RootNav}) => {
@@ -43,14 +40,7 @@ export const LoginScreen = ({navigation}: {navigation: RootNav}) => {
 	const theme = themes(themeName);
 	const style = styles(themeName);
 
-	const doNotRemindSemver =
-		useSelector((s: State) => s.config.doNotRemindSemver) ?? "0.0.0";
-	const latestVersion =
-		useSelector((s: State) => s.config.latestVersion) ?? "3.0.0";
 	const privacy312 = useSelector((s: State) => s.config.privacy312);
-	const haveNewerVersion =
-		gt(latestVersion, VersionNumber.appVersion) &&
-		gt(latestVersion, doNotRemindSemver);
 
 	const performLogin = () => {
 		setProcessing(true);
@@ -74,21 +64,12 @@ export const LoginScreen = ({navigation}: {navigation: RootNav}) => {
 								sportsReservationRecords,
 								crTimetable,
 								balance,
-								latestVersion: {versionName},
-								latestAnnounces,
 							}) => {
 								dispatch(setActiveLibBookRecord(bookingRecords));
 								dispatch(
 									setActiveSportsReservationRecord(sportsReservationRecords),
 								);
 								dispatch(setCrTimetable(crTimetable));
-								dispatch(
-									configSet({
-										key: "latestVersion",
-										value: versionName,
-									}),
-								);
-								dispatch(updateAnnouncements(latestAnnounces));
 								dispatch(setBalance(balance));
 							},
 						);
@@ -161,13 +142,8 @@ export const LoginScreen = ({navigation}: {navigation: RootNav}) => {
 				</TouchableOpacity>
 				<TouchableOpacity
 					onPress={() => Linking.openURL("https://app.cs.tsinghua.edu.cn")}>
-					<Text
-						style={
-							haveNewerVersion ? style.newVersionStyle : style.websiteTextStyle
-						}>
-						{haveNewerVersion
-							? getStr("newVersionAvailableClick")
-							: "app.cs.tsinghua.edu.cn"}
+					<Text style={style.websiteTextStyle}>
+						app.cs.tsinghua.edu.cn
 					</Text>
 				</TouchableOpacity>
 			</View>
@@ -249,11 +225,6 @@ const styles = themedStyles((theme) => {
 
 		websiteTextStyle: {
 			color: theme.colors.primary,
-			marginTop: 20,
-		},
-
-		newVersionStyle: {
-			color: theme.colors.accent,
 			marginTop: 20,
 		},
 

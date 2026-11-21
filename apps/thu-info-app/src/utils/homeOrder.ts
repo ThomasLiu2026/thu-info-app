@@ -51,6 +51,15 @@ export const DEFAULT_HOME_FUNCTION_ORDER: readonly ManagedHomeFunction[] = [
 	"income",
 ];
 
+export const DEFAULT_PINNED_HOME_FUNCTIONS: readonly ManagedHomeFunction[] = [
+	"electricity",
+	"washer",
+	"library",
+	"classroomState",
+	"report",
+	"schoolCalendar",
+];
+
 const VALID_MANAGED_SET = new Set<string>(DEFAULT_HOME_FUNCTION_ORDER);
 const MOBILE_ONLY_FUNCTIONS = new Set<ManagedHomeFunction>(["cr", "invoice"]);
 
@@ -174,4 +183,105 @@ export const reorderVisibleHomeFunction = (
 	nextVisible.splice(toIndex, 0, moved);
 
 	return [...nextVisible, ...hidden];
+};
+
+export const getPinnedHomeFunctions = (
+	savedPinned: readonly string[] | undefined,
+	disabledList: readonly string[] | undefined,
+	platformOS: string,
+): ManagedHomeFunction[] => {
+	const disabledSet = new Set(disabledList ?? []);
+	const source: readonly string[] =
+		savedPinned === undefined ? DEFAULT_PINNED_HOME_FUNCTIONS : savedPinned;
+	const seen = new Set<ManagedHomeFunction>();
+	const result: ManagedHomeFunction[] = [];
+
+	for (const item of source) {
+		if (VALID_MANAGED_SET.has(item)) {
+			const typed = item as ManagedHomeFunction;
+			if (
+				!seen.has(typed) &&
+				!disabledSet.has(typed) &&
+				isFunctionSupportedOnPlatform(typed, platformOS)
+			) {
+				seen.add(typed);
+				result.push(typed);
+			}
+		}
+	}
+
+	return result;
+};
+
+export const getDrawerHomeFunctions = (
+	savedPinned: readonly string[] | undefined,
+	savedOrder: readonly string[] | undefined,
+	disabledList: readonly string[] | undefined,
+	platformOS: string,
+): ManagedHomeFunction[] => {
+	const pinnedSet = new Set<ManagedHomeFunction>(
+		getPinnedHomeFunctions(savedPinned, disabledList, platformOS),
+	);
+	return getVisibleHomeFunctions(savedOrder, disabledList, platformOS).filter(
+		(f) => !pinnedSet.has(f),
+	);
+};
+
+export const pinHomeFunction = (
+	savedPinned: readonly string[] | undefined,
+	disabledList: readonly string[] | undefined,
+	platformOS: string,
+	func: ManagedHomeFunction,
+): ManagedHomeFunction[] => {
+	const current = getPinnedHomeFunctions(savedPinned, disabledList, platformOS);
+	if (
+		current.includes(func) ||
+		!isFunctionSupportedOnPlatform(func, platformOS)
+	) {
+		return current;
+	}
+	return [...current, func];
+};
+
+export const unpinHomeFunction = (
+	savedPinned: readonly string[] | undefined,
+	disabledList: readonly string[] | undefined,
+	platformOS: string,
+	func: ManagedHomeFunction,
+): ManagedHomeFunction[] => {
+	const current = getPinnedHomeFunctions(savedPinned, disabledList, platformOS);
+	return current.filter((item) => item !== func);
+};
+
+export const movePinnedHomeFunction = (
+	savedPinned: readonly string[] | undefined,
+	disabledList: readonly string[] | undefined,
+	platformOS: string,
+	func: ManagedHomeFunction,
+	action: "up" | "down" | "top",
+): ManagedHomeFunction[] => {
+	const current = getPinnedHomeFunctions(savedPinned, disabledList, platformOS);
+	const idx = current.indexOf(func);
+	if (idx === -1) {
+		return current;
+	}
+	const next = [...current];
+	if (action === "top") {
+		if (idx === 0) {
+			return current;
+		}
+		next.splice(idx, 1);
+		next.unshift(func);
+	} else if (action === "up") {
+		if (idx === 0) {
+			return current;
+		}
+		[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+	} else if (action === "down") {
+		if (idx >= next.length - 1) {
+			return current;
+		}
+		[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+	}
+	return next;
 };

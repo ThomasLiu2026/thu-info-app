@@ -1,14 +1,18 @@
 import {
 	Alert,
+	Animated,
 	BackHandler,
+	Dimensions,
+	Modal,
 	Platform,
+	Pressable,
 	ScrollView,
 	Text,
 	TouchableOpacity,
 	useColorScheme,
 	View,
 } from "react-native";
-import {ReactElement, useEffect, useState} from "react";
+import {ReactElement, useEffect, useMemo, useRef, useState} from "react";
 import {RootNav, RootStackParamList} from "../../components/Root";
 import IconReport from "../../assets/icons/IconReport";
 import IconExpenditure from "../../assets/icons/IconExpenditure";
@@ -45,18 +49,15 @@ import {addUsageStat, FunctionType} from "../../utils/webApi";
 import {StackActions} from "@react-navigation/native";
 import {setCrTimetable} from "../../redux/slices/timetable";
 import {getStatusBarHeight} from "react-native-safearea-height";
-import {updateAnnouncements} from "../../redux/slices/announcement";
 import {setBalance} from "../../redux/slices/campusCard";
-import {gt} from "semver";
 import VersionNumber from "react-native-version-number";
 import Svg, {Path} from "react-native-svg";
 import {InfoHelper} from "@thu-info/lib";
 import useDetailNavigator from "../../utils/useDetailNavigator";
-import {RoundedView} from "../../components/views";
-import {styles as settingsStyles} from "../settings/settings";
 import dayjs from "dayjs";
 import {
-	getVisibleHomeFunctions,
+	getDrawerHomeFunctions,
+	getPinnedHomeFunctions,
 	HomeFunction,
 	ManagedHomeFunction,
 } from "../../utils/homeOrder";
@@ -64,6 +65,15 @@ import {
 export type {HomeFunction, ManagedHomeFunction};
 
 const EMPTY_DISABLED: HomeFunction[] = [];
+
+const DRAWER_GROUP_ORDER: readonly (keyof typeof zh)[] = [
+	"reservation",
+	"study",
+	"seasonalFeatures",
+	"campusFinance",
+	"dorm",
+	"network",
+];
 
 const subFunctionLocked = () => {
 	const s = currState();
@@ -313,6 +323,8 @@ export const HOME_FUNCTION_META: Record<ManagedHomeFunction, HomeFunctionMeta> =
 
 export const HomeReservationSection = () => {
 	const themeName = useColorScheme();
+	useSelector((s: State) => s.config.themePreset);
+	useSelector((s: State) => s.config.darkMode);
 	const style = styles(themeName);
 	const activeLibBookRecords = useSelector(
 		(s: State) => s.reservation.activeLibBookRecords,
@@ -336,12 +348,92 @@ export const HomeReservationSection = () => {
 
 export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
-	const theme = themes(themeName);
-	const settingStyle = settingsStyles(themeName);
-	const dispatch = useDispatch();
 	const dark = useSelector((s: State) => s.config.darkMode);
-	const darkModeHook = dark || themeName === "dark";
+	const themePreset = useSelector((s: State) => s.config.themePreset);
+	const theme = themes(themeName);
+	const dispatch = useDispatch();
+	const darkModeHook = Boolean(dark) || themeName === "dark";
 	const detailNavigator = useDetailNavigator();
+
+	const campusBalance = useSelector((s: State) => s.campusCard.balance ?? 0);
+	const disabledList = useSelector(
+		(state: State) => state.config.homeFunctionDisabled ?? EMPTY_DISABLED,
+	);
+	const homeFunctionOrder = useSelector(
+		(state: State) => state.config.homeFunctionOrder,
+	);
+	const homePinnedFunctions = useSelector(
+		(state: State) => state.config.homePinnedFunctions,
+	);
+	const fingerprintSecure: boolean | undefined = useSelector(
+		(state: State) => state.config.fingerprintSecure,
+	);
+	const privacy312 = useSelector((s: State) => s.config.privacy312);
+
+	const showCampusHero = !disabledList.includes("campusCard");
+
+	const pinnedFunctions = useMemo(
+		() =>
+			getPinnedHomeFunctions(homePinnedFunctions, disabledList, Platform.OS),
+		[homePinnedFunctions, disabledList],
+	);
+
+	const drawerFunctions = useMemo(
+		() =>
+			getDrawerHomeFunctions(
+				homePinnedFunctions,
+				homeFunctionOrder,
+				disabledList,
+				Platform.OS,
+			),
+		[homePinnedFunctions, homeFunctionOrder, disabledList],
+	);
+
+	const drawerGroups = useMemo(() => {
+		const map = new Map<keyof typeof zh, ManagedHomeFunction[]>();
+		for (const fn of drawerFunctions) {
+			const groupKey = HOME_FUNCTION_META[fn].groupKey;
+			const bucket = map.get(groupKey) ?? [];
+			bucket.push(fn);
+			map.set(groupKey, bucket);
+		}
+		return DRAWER_GROUP_ORDER.filter((g) => (map.get(g)?.length ?? 0) > 0).map(
+			(g) => ({
+				groupKey: g,
+				items: map.get(g) ?? [],
+			}),
+		);
+	}, [drawerFunctions]);
+
+	const drawerWidth = Math.min(
+		Math.round(Dimensions.get("window").width * 0.8),
+		320,
+	);
+	const [drawerVisible, setDrawerVisible] = useState(false);
+	const slideAnim = useRef(new Animated.Value(drawerWidth)).current;
+
+	const openDrawer = () => {
+		slideAnim.setValue(drawerWidth);
+		setDrawerVisible(true);
+		Animated.timing(slideAnim, {
+			toValue: 0,
+			duration: 220,
+			useNativeDriver: true,
+		}).start();
+	};
+
+	const closeDrawer = (afterClose?: () => void) => {
+		Animated.timing(slideAnim, {
+			toValue: drawerWidth,
+			duration: 180,
+			useNativeDriver: true,
+		}).start(() => {
+			setDrawerVisible(false);
+			if (afterClose) {
+				afterClose();
+			}
+		});
+	};
 
 	const navigateWithDetail = (
 		name: keyof RootStackParamList,
@@ -361,34 +453,24 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 		}
 	};
 
-	const disabledList = useSelector(
-		(state: State) => state.config.homeFunctionDisabled ?? EMPTY_DISABLED,
-	);
-	const homeFunctionOrder = useSelector(
-		(state: State) => state.config.homeFunctionOrder,
-	);
+	const openCampusExpenditure = () => {
+		addUsageStat(FunctionType.Expenditure);
+		if (
+			currState().config.verifyPasswordBeforeEnterFinance &&
+			subFunctionLocked()
+		) {
+			navigateWithDetail("DigitalPassword", {
+				action: "verify",
+				target: "Expenditure",
+			});
+		} else {
+			navigateWithDetail("Expenditure", {initialTab: "analysis"});
+		}
+	};
 
-	const visibleFunctions = getVisibleHomeFunctions(
-		homeFunctionOrder,
-		disabledList,
-		Platform.OS,
-	);
-
-	const fingerprintSecure: boolean | undefined = useSelector(
-		(state: State) => state.config.fingerprintSecure,
-	);
-
-	const privacy312 = useSelector((s: State) => s.config.privacy312);
-
-	const doNotRemindSemver =
-		useSelector((s: State) => s.config.doNotRemindSemver) ?? "0.0.0";
-	const latestVersion =
-		useSelector((s: State) => s.config.latestVersion) ?? "3.0.0";
-	const newVersionAvailable =
-		gt(latestVersion, VersionNumber.appVersion) &&
-		gt(latestVersion, doNotRemindSemver);
-	const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false);
-	const showUpdateBanner = newVersionAvailable && !updateBannerDismissed;
+	const openCampusCard = () => {
+		HOME_FUNCTION_META.campusCard.onTrigger(navigateWithDetail);
+	};
 
 	useEffect(() => {
 		// @ts-ignore
@@ -436,19 +518,10 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 					sportsReservationRecords,
 					crTimetable,
 					balance,
-					latestVersion: remoteLatest,
-					latestAnnounces,
 				}) => {
 					dispatch(setActiveLibBookRecord(bookingRecords));
 					dispatch(setActiveSportsReservationRecord(sportsReservationRecords));
 					dispatch(setCrTimetable(crTimetable));
-					dispatch(
-						configSet({
-							key: "latestVersion",
-							value: remoteLatest.versionName,
-						}),
-					);
-					dispatch(updateAnnouncements(latestAnnounces));
 					dispatch(setBalance(balance));
 					if (
 						fingerprintSecure !== true &&
@@ -469,163 +542,565 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	const statusTop = getStatusBarHeight();
+
 	return (
-		<View style={{flex: 1, paddingTop: getStatusBarHeight()}}>
-			{showUpdateBanner && (
-				<View
-					style={{
-						position: "absolute",
-						top: getStatusBarHeight(),
-						left: 12,
-						right: 12,
-						zIndex: 10,
-						backgroundColor: theme.colors.contentBackground,
-						borderRadius: 8,
-						paddingVertical: 12,
-						paddingHorizontal: 14,
-						...Platform.select({
-							ios: {
-								shadowColor: "#B8A9D4",
-								shadowOffset: {width: 0, height: 0},
-								shadowOpacity: 0.45,
-								shadowRadius: 14,
-							},
-							android: {elevation: 8},
-						}),
-					}}>
-					<TouchableOpacity
-						hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
-						style={{position: "absolute", right: 10, top: 10, zIndex: 1}}
-						onPress={() => setUpdateBannerDismissed(true)}>
-						<Text
-							style={{
-								fontSize: 20,
-								color: theme.colors.text,
-								lineHeight: 24,
-							}}>
-							×
-						</Text>
-					</TouchableOpacity>
-					<Text
+		<View
+			style={{
+				flex: 1,
+				paddingTop: statusTop,
+				backgroundColor: theme.colors.themeBackground,
+			}}>
+			{/* Top Header Bar */}
+			<View
+				style={{
+					flexDirection: "row",
+					alignItems: "center",
+					justifyContent: "space-between",
+					paddingHorizontal: 18,
+					paddingTop: 14,
+					paddingBottom: 10,
+				}}>
+				<View style={{flexDirection: "row", alignItems: "center"}}>
+					<View
 						style={{
-							color: theme.colors.text,
-							fontSize: 16,
-							fontWeight: "600",
-							paddingRight: 28,
-							marginBottom: 8,
-						}}>
-						{getStr("updateBannerTitle")}
-					</Text>
-					<TouchableOpacity
-						style={{
-							alignSelf: "flex-end",
-							flexDirection: "row",
+							width: 34,
+							height: 34,
+							borderRadius: 10,
+							backgroundColor: theme.colors.heroCardBg,
 							alignItems: "center",
-							gap: 4,
-						}}
-						onPress={() =>
-							navigation.navigate("About", {openCheckUpdate: true})
-						}>
-						<Text
-							style={{
-								color: theme.colors.primaryLight,
-								fontSize: 14,
-							}}>
-							{getStr("updateBannerDetailLink")}
-						</Text>
-						<Svg viewBox="0 0 24 24" width={14} height={14} fill="none">
+							justifyContent: "center",
+							marginRight: 10,
+						}}>
+						<Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
 							<Path
+								d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z M12 12l8-4.5 M12 12v9 M12 12L4 7.5"
+								stroke="#FFFFFF"
+								strokeWidth={2}
 								strokeLinecap="round"
 								strokeLinejoin="round"
-								strokeWidth={3}
-								stroke={theme.colors.primaryLight}
-								d="M9 6L15 12L9 18"
 							/>
 						</Svg>
-					</TouchableOpacity>
+					</View>
+					<Text
+						style={{
+							fontSize: 20,
+							fontWeight: "700",
+							color: theme.colors.text,
+							letterSpacing: -0.3,
+						}}>
+						THU Info
+					</Text>
 				</View>
-			)}
+
+				<TouchableOpacity
+					activeOpacity={0.78}
+					onPress={openDrawer}
+					style={{
+						minHeight: 40,
+						paddingHorizontal: 13,
+						borderRadius: 12,
+						borderWidth: 1,
+						borderColor: theme.colors.softBorder,
+						backgroundColor: theme.colors.contentBackground,
+						flexDirection: "row",
+						alignItems: "center",
+					}}>
+					<Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+						<Path
+							d="M4 6h16 M4 12h16 M4 18h10"
+							stroke={theme.colors.primary}
+							strokeWidth={2}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						/>
+					</Svg>
+					<Text
+						style={{
+							fontSize: 13,
+							fontWeight: "600",
+							color: theme.colors.text,
+							marginLeft: 6,
+						}}>
+						{getStr("drawerShortLabel")}
+					</Text>
+					<Text
+						style={{
+							fontSize: 12,
+							fontWeight: "700",
+							color: theme.colors.primary,
+							marginLeft: 6,
+							fontVariant: ["tabular-nums"],
+						}}>
+						{drawerFunctions.length}
+					</Text>
+				</TouchableOpacity>
+			</View>
+
 			<ScrollView
-				style={{
-					backgroundColor: theme.colors.themeBackground,
+				style={{flex: 1}}
+				contentContainerStyle={{
+					paddingHorizontal: 16,
+					paddingTop: 6,
+					paddingBottom: 28,
 				}}
-				contentContainerStyle={showUpdateBanner ? {paddingTop: 76} : undefined}
-				key={String(darkModeHook)}>
-				<HomeReservationSection />
-				<View style={{marginHorizontal: 12, marginTop: 12}}>
-					<RoundedView style={{paddingVertical: 8}}>
-						{visibleFunctions.length === 0 ? (
+				key={`${String(darkModeHook)}-${String(themePreset)}`}>
+				{/* Campus Card Hero Card */}
+				{showCampusHero && (
+					<View
+						style={{
+							borderRadius: 22,
+							backgroundColor: theme.colors.heroCardBg,
+							padding: 18,
+							marginBottom: 18,
+							...Platform.select({
+								ios: {
+									shadowColor: theme.colors.heroCardBg,
+									shadowOffset: {width: 0, height: 8},
+									shadowOpacity: 0.24,
+									shadowRadius: 16,
+								},
+								android: {elevation: 5},
+							}),
+						}}>
+						<View
+							style={{
+								flexDirection: "row",
+								alignItems: "flex-start",
+								justifyContent: "space-between",
+							}}>
+							<View>
+								<Text
+									style={{
+										fontSize: 12,
+										color: "rgba(255,255,255,0.82)",
+										fontWeight: "500",
+									}}>
+									{getStr("campusCardBalanceTitle")}
+								</Text>
+								<Text
+									style={{
+										fontSize: 30,
+										fontWeight: "700",
+										color: "#FFFFFF",
+										letterSpacing: -0.6,
+										fontVariant: ["tabular-nums"],
+										marginTop: 4,
+									}}>
+									{`¥ ${Number(campusBalance).toFixed(2)}`}
+								</Text>
+							</View>
 							<View
 								style={{
-									paddingVertical: 24,
+									backgroundColor: "rgba(255,255,255,0.16)",
+									paddingHorizontal: 10,
+									paddingVertical: 5,
+									borderRadius: 999,
+								}}>
+								<Text
+									style={{
+										fontSize: 11,
+										fontWeight: "600",
+										color: "#FFFFFF",
+									}}>
+									{getStr("pouchDirectLinked")}
+								</Text>
+							</View>
+						</View>
+
+						<View
+							style={{
+								flexDirection: "row",
+								marginTop: 16,
+							}}>
+							<TouchableOpacity
+								activeOpacity={0.85}
+								onPress={openCampusExpenditure}
+								style={{
+									flex: 1,
+									minHeight: 42,
+									borderRadius: 12,
+									backgroundColor: "#FFFFFF",
+									alignItems: "center",
+									justifyContent: "center",
+									marginRight: 10,
+								}}>
+								<Text
+									style={{
+										fontSize: 13,
+										fontWeight: "700",
+										color: theme.colors.heroCardBg,
+									}}>
+									{getStr("campusCardBillAction")}
+								</Text>
+							</TouchableOpacity>
+							<TouchableOpacity
+								activeOpacity={0.82}
+								onPress={openCampusCard}
+								style={{
+									flex: 1,
+									minHeight: 42,
+									borderRadius: 12,
+									borderWidth: 1,
+									borderColor: "rgba(255,255,255,0.36)",
+									backgroundColor: "rgba(255,255,255,0.12)",
 									alignItems: "center",
 									justifyContent: "center",
 								}}>
-								<Text style={{color: theme.colors.fontB2}}>
-									{getStr("emptyList")}
+								<Text
+									style={{
+										fontSize: 13,
+										fontWeight: "600",
+										color: "#FFFFFF",
+									}}>
+									{getStr("campusCardRechargeAction")}
 								</Text>
-							</View>
-						) : (
-							visibleFunctions.map((funcKey, index) => {
+							</TouchableOpacity>
+						</View>
+					</View>
+				)}
+
+				<HomeReservationSection />
+
+				{/* Pinned Common Apps Springboard Grid */}
+				<View
+					style={{
+						flexDirection: "row",
+						alignItems: "center",
+						justifyContent: "space-between",
+						paddingHorizontal: 4,
+						marginBottom: 10,
+					}}>
+					<Text
+						style={{
+							fontSize: 15,
+							fontWeight: "700",
+							color: theme.colors.text,
+						}}>
+						{getStr("pinnedHomeSection")}
+					</Text>
+					<TouchableOpacity
+						activeOpacity={0.75}
+						onPress={() => navigation.navigate("HomeFunctionOrder")}
+						style={{paddingVertical: 4, paddingHorizontal: 4}}>
+						<Text
+							style={{
+								fontSize: 13,
+								fontWeight: "600",
+								color: theme.colors.primary,
+							}}>
+							{getStr("manageCommonApps")}
+						</Text>
+					</TouchableOpacity>
+				</View>
+
+				<View
+					style={{
+						backgroundColor: theme.colors.contentBackground,
+						borderRadius: 22,
+						borderWidth: 1,
+						borderColor: theme.colors.softBorder,
+						paddingVertical: 14,
+						paddingHorizontal: 8,
+					}}>
+					{pinnedFunctions.length === 0 ? (
+						<TouchableOpacity
+							onPress={() => navigation.navigate("HomeFunctionOrder")}
+							style={{
+								paddingVertical: 26,
+								paddingHorizontal: 16,
+								alignItems: "center",
+							}}>
+							<Text
+								style={{
+									fontSize: 13,
+									color: theme.colors.fontB2,
+									textAlign: "center",
+								}}>
+								{getStr("pinnedEmptyHint")}
+							</Text>
+						</TouchableOpacity>
+					) : (
+						<View style={{flexDirection: "row", flexWrap: "wrap"}}>
+							{pinnedFunctions.map((funcKey) => {
 								const meta = HOME_FUNCTION_META[funcKey];
 								return (
-									<View key={funcKey}>
-										{index > 0 && (
-											<View
-												style={[
-													settingStyle.separator,
-													{marginVertical: 4, marginHorizontal: 16},
-												]}
-											/>
-										)}
-										<TouchableOpacity
-											testID={"HomeItem-" + funcKey}
+									<TouchableOpacity
+										key={funcKey}
+										testID={"HomeItem-" + funcKey}
+										activeOpacity={0.75}
+										onPress={() => {
+											dispatch(top5Update(funcKey));
+											meta.onTrigger(navigateWithDetail);
+										}}
+										style={{
+											width: "33.3333%",
+											alignItems: "center",
+											paddingVertical: 10,
+											paddingHorizontal: 4,
+										}}>
+										<View
 											style={{
-												flexDirection: "row",
+												width: 48,
+												height: 48,
+												borderRadius: 16,
+												backgroundColor: theme.colors.softTintBg,
 												alignItems: "center",
-												paddingHorizontal: 16,
-												paddingVertical: 11,
-											}}
-											onPress={() => {
-												dispatch(top5Update(funcKey));
-												meta.onTrigger(navigateWithDetail);
+												justifyContent: "center",
+												marginBottom: 8,
 											}}>
-											<View style={{marginRight: 14}}>
-												{meta.renderIcon(26)}
-											</View>
-											<Text
-												style={{
-													flex: 1,
-													fontSize: 16,
-													color: theme.colors.text,
-												}}>
-												{getStr(meta.titleKey)}
-											</Text>
-											<Text
-												style={{
-													fontSize: 12,
-													color: theme.colors.fontB3,
-													marginRight: 6,
-												}}>
-												{getStr(meta.groupKey)}
-											</Text>
-											<IconRight width={18} height={18} />
-										</TouchableOpacity>
-									</View>
+											{meta.renderIcon(24)}
+										</View>
+										<Text
+											numberOfLines={1}
+											style={{
+												fontSize: 12,
+												fontWeight: "600",
+												color: theme.colors.text,
+												textAlign: "center",
+											}}>
+											{getStr(meta.titleKey)}
+										</Text>
+									</TouchableOpacity>
 								);
-							})
-						)}
-					</RoundedView>
+							})}
+						</View>
+					)}
 				</View>
-				<View style={{height: 20}} />
+
+				{/* Drawer Entry Banner */}
+				{drawerFunctions.length > 0 && (
+					<TouchableOpacity
+						activeOpacity={0.82}
+						onPress={openDrawer}
+						style={{
+							marginTop: 16,
+							minHeight: 54,
+							paddingHorizontal: 16,
+							borderRadius: 16,
+							borderWidth: 1,
+							borderColor: theme.colors.softBorder,
+							backgroundColor: theme.colors.drawerPillBg,
+							flexDirection: "row",
+							alignItems: "center",
+							justifyContent: "space-between",
+						}}>
+						<View style={{flexDirection: "row", alignItems: "center"}}>
+							<Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+								<Path
+									d="M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z"
+									stroke={theme.colors.primary}
+									strokeWidth={2}
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								/>
+							</Svg>
+							<Text
+								style={{
+									fontSize: 14,
+									fontWeight: "600",
+									color: theme.colors.text,
+									marginLeft: 10,
+								}}>
+								{getStr("viewAllDrawerServices")}
+							</Text>
+						</View>
+						<Text
+							style={{
+								fontSize: 13,
+								fontWeight: "700",
+								color: theme.colors.primary,
+							}}>
+							{`${drawerFunctions.length}${getStr("itemsCountSuffix")} →`}
+						</Text>
+					</TouchableOpacity>
+				)}
 			</ScrollView>
+
+			{/* Right Slide-Over App Drawer */}
+			<Modal
+				visible={drawerVisible}
+				transparent
+				animationType="fade"
+				onRequestClose={() => closeDrawer()}>
+				<View
+					style={{
+						flex: 1,
+						flexDirection: "row",
+						backgroundColor: "rgba(18, 12, 28, 0.38)",
+					}}>
+					<Pressable style={{flex: 1}} onPress={() => closeDrawer()} />
+					<Animated.View
+						style={{
+							width: drawerWidth,
+							height: "100%",
+							backgroundColor: theme.colors.contentBackground,
+							paddingTop: statusTop + 14,
+							paddingHorizontal: 16,
+							paddingBottom: 22,
+							transform: [{translateX: slideAnim}],
+							...Platform.select({
+								ios: {
+									shadowColor: "#000000",
+									shadowOffset: {width: -8, height: 0},
+									shadowOpacity: 0.18,
+									shadowRadius: 20,
+								},
+								android: {elevation: 16},
+							}),
+						}}>
+						<View
+							style={{
+								flexDirection: "row",
+								alignItems: "center",
+								justifyContent: "space-between",
+								paddingBottom: 12,
+								borderBottomWidth: 1,
+								borderBottomColor: theme.colors.softBorder,
+							}}>
+							<View>
+								<Text
+									style={{
+										fontSize: 17,
+										fontWeight: "700",
+										color: theme.colors.text,
+									}}>
+									{getStr("appDrawer")}
+								</Text>
+								<Text
+									style={{
+										fontSize: 12,
+										color: theme.colors.fontB2,
+										marginTop: 2,
+									}}>
+									{`${drawerFunctions.length}${getStr("itemsCountSuffix")}`}
+								</Text>
+							</View>
+							<TouchableOpacity
+								activeOpacity={0.75}
+								onPress={() => closeDrawer()}
+								style={{
+									width: 38,
+									height: 38,
+									borderRadius: 11,
+									backgroundColor: theme.colors.themeBackground,
+									borderWidth: 1,
+									borderColor: theme.colors.softBorder,
+									alignItems: "center",
+									justifyContent: "center",
+								}}>
+								<Svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+									<Path
+										d="M18 6L6 18M6 6l12 12"
+										stroke={theme.colors.text}
+										strokeWidth={2}
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									/>
+								</Svg>
+							</TouchableOpacity>
+						</View>
+
+						<ScrollView
+							style={{flex: 1, marginTop: 12}}
+							showsVerticalScrollIndicator={false}>
+							{drawerGroups.length === 0 ? (
+								<View style={{paddingVertical: 32, alignItems: "center"}}>
+									<Text style={{fontSize: 13, color: theme.colors.fontB2}}>
+										{getStr("drawerEmptyHint")}
+									</Text>
+								</View>
+							) : (
+								drawerGroups.map((group) => (
+									<View key={group.groupKey} style={{marginBottom: 16}}>
+										<Text
+											style={{
+												fontSize: 12,
+												fontWeight: "700",
+												color: theme.colors.fontB2,
+												marginLeft: 4,
+												marginBottom: 7,
+											}}>
+											{getStr(group.groupKey)}
+										</Text>
+										{group.items.map((funcKey) => {
+											const meta = HOME_FUNCTION_META[funcKey];
+											return (
+												<TouchableOpacity
+													key={funcKey}
+													activeOpacity={0.75}
+													onPress={() =>
+														closeDrawer(() => {
+															dispatch(top5Update(funcKey));
+															meta.onTrigger(navigateWithDetail);
+														})
+													}
+													style={{
+														minHeight: 46,
+														paddingHorizontal: 12,
+														paddingVertical: 8,
+														borderRadius: 12,
+														borderWidth: 1,
+														borderColor: theme.colors.softBorder,
+														backgroundColor: theme.colors.themeBackground,
+														flexDirection: "row",
+														alignItems: "center",
+														marginBottom: 7,
+													}}>
+													<View style={{marginRight: 10}}>
+														{meta.renderIcon(20)}
+													</View>
+													<Text
+														style={{
+															flex: 1,
+															fontSize: 14,
+															fontWeight: "500",
+															color: theme.colors.text,
+														}}
+														numberOfLines={1}>
+														{getStr(meta.titleKey)}
+													</Text>
+													<IconRight width={16} height={16} />
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+								))
+							)}
+						</ScrollView>
+
+						<TouchableOpacity
+							activeOpacity={0.82}
+							onPress={() =>
+								closeDrawer(() => navigation.navigate("HomeFunctionOrder"))
+							}
+							style={{
+								marginTop: 10,
+								minHeight: 44,
+								borderRadius: 12,
+								backgroundColor: theme.colors.softTintBg,
+								alignItems: "center",
+								justifyContent: "center",
+							}}>
+							<Text
+								style={{
+									fontSize: 13,
+									fontWeight: "600",
+									color: theme.colors.primary,
+								}}>
+								{`${getStr("commonAppsManagement")} →`}
+							</Text>
+						</TouchableOpacity>
+					</Animated.View>
+				</View>
+			</Modal>
 		</View>
 	);
 };
 
 const styles = themedStyles((theme) => ({
 	SectionContainer: {
-		marginHorizontal: 12,
+		marginBottom: 14,
 	},
 	SectionContentContainer: {
 		backgroundColor: theme.colors.contentBackground,
@@ -638,8 +1113,7 @@ const styles = themedStyles((theme) => ({
 	SectionTitle: {
 		textAlign: "left",
 		fontSize: 15,
-		marginTop: 18,
-		marginLeft: 12,
+		marginLeft: 4,
 		marginBottom: 8,
 		fontWeight: "bold",
 		color: theme.colors.text,

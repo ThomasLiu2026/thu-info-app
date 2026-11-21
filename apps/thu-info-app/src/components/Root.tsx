@@ -81,6 +81,7 @@ import {LanguageScreen} from "../ui/settings/language";
 import {DarkModeScreen} from "../ui/settings/darkMode";
 import {FunctionManagementScreen} from "../ui/settings/functionManagement";
 import {HomeFunctionOrderScreen} from "../ui/settings/homeFunctionOrder";
+import {ThemePresetScreen} from "../ui/settings/themePreset";
 import {DigitalPasswordScreen} from "../ui/settings/digitalPassword";
 import {AppSecretScreen} from "../ui/settings/appSecret";
 import {AppSecretCustomizeScreen} from "../ui/settings/appSecretCustomize";
@@ -94,8 +95,6 @@ import {Classroom} from "@thu-info/lib/src/models/home/classroom";
 import {AppSecretSelectLockTimeScreen} from "../ui/settings/appSecretSelectLockTime";
 import {LoginScreen} from "../ui/settings/login";
 import {useSelector} from "react-redux";
-import {gt} from "semver";
-import VersionNumber from "react-native-version-number";
 import Share from "react-native-share";
 import {NetworkScreen} from "../ui/home/network";
 import {NetworkDetailScreen} from "../ui/home/networkDetail";
@@ -117,15 +116,10 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 
 const RootTabs = () => {
 	const themeName = useColorScheme();
+	// Subscribe to theme settings so tab tint updates immediately without restart.
+	useSelector((s: State) => s.config.themePreset);
+	useSelector((s: State) => s.config.darkMode);
 	const theme = themes(themeName);
-
-	const doNotRemindSemver =
-		useSelector((s: State) => s.config.doNotRemindSemver) ?? "0.0.0";
-	const latestVersion =
-		useSelector((s: State) => s.config.latestVersion) ?? "3.0.0";
-	const shouldShowBadge =
-		gt(latestVersion, VersionNumber.appVersion) &&
-		gt(latestVersion, doNotRemindSemver);
 
 	return (
 		<Tab.Navigator
@@ -162,10 +156,6 @@ const RootTabs = () => {
 				component={SettingsScreen}
 				options={{
 					title: getStr("settings"),
-					tabBarBadge: shouldShowBadge ? "" : undefined,
-					tabBarBadgeStyle: {
-						transform: [{scale: 0.5}],
-					},
 				}}
 			/>
 		</Tab.Navigator>
@@ -296,6 +286,7 @@ type SettingsStackParamList = {
 	AppSecretSelectLockTime: undefined;
 	FunctionManagement: undefined;
 	HomeFunctionOrder: undefined;
+	ThemePreset: undefined;
 	General: undefined;
 	Language: undefined;
 	DarkMode: undefined;
@@ -735,7 +726,12 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 			<Stack.Screen
 				name="HomeFunctionOrder"
 				component={HomeFunctionOrderScreen}
-				options={{title: getStr("homeFunctionOrder")}}
+				options={{title: getStr("commonAppsManagement")}}
+			/>
+			<Stack.Screen
+				name="ThemePreset"
+				component={ThemePresetScreen}
+				options={{title: getStr("themeColorPreset")}}
 			/>
 			<Stack.Screen
 				name="DigitalPassword"

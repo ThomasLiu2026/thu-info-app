@@ -45,4 +45,8 @@ export const colorLight: ColorTheme = {
 		"#5b8eff",
 		"#139161",
 	],
+	heroCardBg: "#671E7F",
+	softTintBg: "#F3EAFB",
+	softBorder: "#E5DDF0",
+	drawerPillBg: "#F2EEF8",
 };

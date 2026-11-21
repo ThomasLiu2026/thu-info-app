@@ -17,6 +17,8 @@ import {configSet} from "../../redux/slices/config";
 
 export const GeneralScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
+	useSelector((s: State) => s.config.themePreset);
+	useSelector((s: State) => s.config.darkMode);
 	const style = styles(themeName);
 	const {colors} = themes(themeName);
 

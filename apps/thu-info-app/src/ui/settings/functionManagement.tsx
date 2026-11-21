@@ -85,6 +85,8 @@ export const FunctionManagementScreen = ({
 	navigation: RootNav;
 }) => {
 	const themeName = useColorScheme();
+	useSelector((s: State) => s.config.themePreset);
+	useSelector((s: State) => s.config.darkMode);
 	const {colors} = themes(themeName);
 	const style = styles(themeName);
 
@@ -151,7 +153,7 @@ export const FunctionManagementScreen = ({
 				<TouchableOpacity
 					style={style.touchable}
 					onPress={() => navigation.navigate("HomeFunctionOrder")}>
-					<Text style={style.text}>{getStr("homeFunctionOrder")}</Text>
+					<Text style={style.text}>{getStr("commonAppsManagement")}</Text>
 					<IconRight height={20} width={20} />
 				</TouchableOpacity>
 			</RoundedView>

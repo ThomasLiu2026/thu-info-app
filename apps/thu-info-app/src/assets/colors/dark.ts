@@ -46,4 +46,8 @@ export const colorDark: ColorTheme = {
 		"#5b8eff",
 		"#139161",
 	],
+	heroCardBg: "#4B165E",
+	softTintBg: "#271B31",
+	softBorder: "#3A2B47",
+	drawerPillBg: "#21192A",
 };

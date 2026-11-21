@@ -45,4 +45,8 @@ export const colorPkuLight: ColorTheme = {
 		"#5b8eff",
 		"#139161",
 	],
+	heroCardBg: "#8B0012",
+	softTintBg: "#FBEBEC",
+	softBorder: "#EED5D8",
+	drawerPillBg: "#F9EDEE",
 };
