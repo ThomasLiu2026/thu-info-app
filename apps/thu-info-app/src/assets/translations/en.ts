@@ -748,4 +748,8 @@ export default {
 	scheduleUploadCustomMessage: "Upload custom schedules of current semester to 网络学堂?\nSchedules are not editable once uploaded.",
 	scheduleUploadCustomConfirm: "Upload",
 	scheduleUploadCustomSuccess: "Custom schedules have been uploaded to 网络学堂",
+	syncToPouch: "Sync to Pouch",
+	syncToPouchSuccess: "Synced monthly campus bill to Pouch",
+	syncToPouchNotInstalled: "Pouch app not installed",
+	syncToPouchFailed: "Failed to sync to Pouch",
 };

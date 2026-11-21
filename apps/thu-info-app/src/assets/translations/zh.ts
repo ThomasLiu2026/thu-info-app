@@ -711,4 +711,8 @@ export default {
 	scheduleUploadCustomMessage: "是否将当前学期的自定义日程上传至网络学堂？\n注意：上传后不支持修改。",
 	scheduleUploadCustomConfirm: "上传",
 	scheduleUploadCustomSuccess: "已将自定义日程上传至网络学堂",
+	syncToPouch: "同步到 Pouch",
+	syncToPouchSuccess: "已同步当月校园卡账单至 Pouch",
+	syncToPouchNotInstalled: "未检测到 Pouch 应用",
+	syncToPouchFailed: "同步到 Pouch 失败",
 };

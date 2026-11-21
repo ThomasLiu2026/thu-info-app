@@ -10,6 +10,8 @@ import {
 	BackHandler,
 	FlatList,
 	Modal,
+	NativeModules,
+	Platform,
 	RefreshControl,
 	SectionList,
 	Text,
@@ -41,6 +43,7 @@ import IconRight from "../../assets/icons/IconRight";
 import IconCheck from "../../assets/icons/IconCheck";
 import ScrollPicker from "react-native-wheel-scrollview-picker";
 import {NetworkRetry} from "../../components/easySnackbars";
+import {Snackbar} from "react-native-snackbar";
 import dayjs from "dayjs";
 import IconRice from "../../assets/icons/IconRice";
 import IconWechat from "../../assets/icons/IconWechat";
@@ -66,6 +69,11 @@ import {
 	prepareMonthlyTransactions,
 	ShowerSubCategory,
 } from "../../utils/expenditureAnalysis";
+import {
+	buildPouchCampusPayload,
+	pouchPayloadSignature,
+	syncCampusPayloadToPouch,
+} from "../../utils/pouchSync";
 import type {RootStackParamList} from "../../components/Root";
 
 const getTransactionIcon = (tx: CardTransaction, iconSize = 32): ReactElement => {
@@ -215,6 +223,7 @@ export const ExpenditureScreen = ({
 	const otherMerchantSubcategories = useSelector(
 		(s: State) => s.campusCard.otherMerchantSubcategories,
 	);
+	const campusCardBalance = useSelector((s: State) => s.campusCard.balance);
 
 	const today = dayjs();
 	const currentYear = today.year();
@@ -361,6 +370,8 @@ export const ExpenditureScreen = ({
 
 	const currentAnalysisMonth =
 		monthCache[ymKey(analysisYm.year, analysisYm.month)];
+	const currentCalendarMonth = monthCache[ymKey(currentYear, currentMonth)];
+	const lastSyncedSigRef = useRef<string>("");
 
 	const analysis = useMemo(
 		() =>
@@ -378,6 +389,76 @@ export const ExpenditureScreen = ({
 			otherMerchantSubcategories,
 		],
 	);
+
+	// Silently broadcast structured monthly campus summary to Pouch whenever data or custom categories update
+	useEffect(() => {
+		const targetMonth =
+			activeTab === "analysis" ? currentAnalysisMonth : currentCalendarMonth;
+		if (!targetMonth) {
+			return;
+		}
+		const targetAnalysis =
+			activeTab === "analysis"
+				? analysis
+				: analyzeMonthlyExpenditure(
+						targetMonth.data,
+						overrides,
+						otherSubcategories,
+						otherMerchantSubcategories,
+						getStr("otherCanteen"),
+				  );
+		const payload = buildPouchCampusPayload(
+			targetMonth.year,
+			targetMonth.month,
+			targetMonth.data,
+			targetAnalysis,
+			campusCardBalance,
+		);
+		const sig = pouchPayloadSignature(payload);
+		if (sig === lastSyncedSigRef.current) {
+			return;
+		}
+		lastSyncedSigRef.current = sig;
+		syncCampusPayloadToPouch(payload, Platform.OS, NativeModules.PouchSync);
+	}, [
+		activeTab,
+		currentAnalysisMonth,
+		currentCalendarMonth,
+		analysis,
+		overrides,
+		otherSubcategories,
+		otherMerchantSubcategories,
+		campusCardBalance,
+	]);
+
+	const handleManualSyncToPouch = useCallback(async () => {
+		if (!currentAnalysisMonth) {
+			return;
+		}
+		const payload = buildPouchCampusPayload(
+			currentAnalysisMonth.year,
+			currentAnalysisMonth.month,
+			currentAnalysisMonth.data,
+			analysis,
+			campusCardBalance,
+		);
+		lastSyncedSigRef.current = pouchPayloadSignature(payload);
+		const res = await syncCampusPayloadToPouch(
+			payload,
+			Platform.OS,
+			NativeModules.PouchSync,
+		);
+		const msg =
+			res === "synced"
+				? getStr("syncToPouchSuccess")
+				: res === "not_installed"
+				  ? getStr("syncToPouchNotInstalled")
+				  : getStr("syncToPouchFailed");
+		Snackbar.show({
+			text: msg,
+			duration: Snackbar.LENGTH_SHORT,
+		});
+	}, [currentAnalysisMonth, analysis, campusCardBalance]);
 
 	const activeParentStat = useMemo(
 		() =>
@@ -843,6 +924,27 @@ export const ExpenditureScreen = ({
 											{getStr("income")} ￥
 											{(currentAnalysisMonth?.income ?? 0).toFixed(2)}
 										</Text>
+										{currentAnalysisMonth !== undefined && (
+											<TouchableOpacity
+												style={{
+													marginTop: 10,
+													paddingHorizontal: 14,
+													paddingVertical: 5,
+													borderRadius: 14,
+													borderWidth: 1,
+													borderColor: colors.themePurple,
+												}}
+												onPress={handleManualSyncToPouch}>
+												<Text
+													style={{
+														color: colors.themePurple,
+														fontSize: 12,
+														fontWeight: "600",
+													}}>
+													{getStr("syncToPouch")}
+												</Text>
+											</TouchableOpacity>
+										)}
 									</View>
 
 									{/* Part-to-whole Horizontal Stacked Bar */}
