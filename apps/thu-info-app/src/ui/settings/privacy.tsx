@@ -1,6 +1,7 @@
 import {WebView} from "react-native-webview";
 import {BackHandler, Platform, Text, TouchableOpacity, View} from "react-native";
 import themes from "../../assets/themes/themes";
+import {resolveIsDarkMode} from "../../assets/themes/presets";
 import {useColorScheme} from "react-native";
 import {useDispatch, useSelector} from "react-redux";
 import {helper, State} from "../../redux/store";
@@ -11,8 +12,11 @@ import {configSet} from "../../redux/slices/config.ts";
 
 export const PrivacyScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
-	const theme = themes(themeName);
 	const dark = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
+	useSelector((s: State) => s.config.themePreset);
+	const theme = themes(themeName);
+	const isDark = resolveIsDarkMode(colorSchemeMode, dark, themeName);
 	const privacy312 = useSelector((s: State) => s.config.privacy312);
 	const dispatch = useDispatch();
 	const FORCE_DARK_JS = `
@@ -54,7 +58,7 @@ export const PrivacyScreen = ({navigation}: {navigation: RootNav}) => {
 						color: theme.colors.text,
 					}}
 					setSupportMultipleWindows={false}
-					forceDarkOn={dark || themeName === "dark"}
+					forceDarkOn={isDark}
 					injectedJavaScript={FORCE_DARK_JS}
 					onMessage={() => { }}
 				/>

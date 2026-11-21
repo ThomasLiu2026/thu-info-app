@@ -24,6 +24,7 @@ import {useDispatch, useSelector} from "react-redux";
 import {RouteProp} from "@react-navigation/native";
 import {getStr} from "../../utils/i18n";
 import themes from "../../assets/themes/themes";
+import {resolveIsDarkMode} from "../../assets/themes/presets";
 import {styles} from "../../ui/settings/settings";
 import {helper, State} from "../../redux/store";
 import {
@@ -214,6 +215,8 @@ export const ExpenditureScreen = ({
 }) => {
 	const dispatch = useDispatch();
 	const darkModeConfig = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
+	useSelector((s: State) => s.config.themePreset);
 	const overrides = useSelector(
 		(s: State) => s.campusCard.merchantCategoryOverrides,
 	);
@@ -270,7 +273,7 @@ export const ExpenditureScreen = ({
 	const [popupMonth, setPopupMonth] = useState<number>(currentMonth);
 
 	const themeName = useColorScheme();
-	const isDark = darkModeConfig || themeName === "dark";
+	const isDark = resolveIsDarkMode(colorSchemeMode, darkModeConfig, themeName);
 	const {colors} = themes(themeName);
 	const style = styles(themeName);
 	const categoryColors = isDark

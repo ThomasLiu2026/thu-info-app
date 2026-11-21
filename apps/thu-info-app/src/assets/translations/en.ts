@@ -782,4 +782,9 @@ export default {
 	themeGraphiteMonoDesc: "Minimalist charcoal neutral",
 	customVersionLocked: "Custom locked build (auto-update disabled)",
 	itemsCountSuffix: " items",
+	appearanceMode: "Appearance",
+	lightModeLabel: "Light",
+	darkModeLabel: "Dark",
+	followSystemLabel: "System",
+	appearanceModeAllSkinsTip: "Applies instantly to all color themes",
 };

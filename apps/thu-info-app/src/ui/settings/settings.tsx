@@ -28,7 +28,11 @@ import {
 import {setBalance} from "../../redux/slices/campusCard";
 import useDetailNavigator from "../../utils/useDetailNavigator";
 import {StackActions} from "@react-navigation/native";
-import {getThemePreset} from "../../assets/themes/presets";
+import {
+	getEffectiveColorSchemeMode,
+	getThemePreset,
+	resolveIsDarkMode,
+} from "../../assets/themes/presets";
 import {getPinnedHomeFunctions, HomeFunction} from "../../utils/homeOrder";
 
 const EMPTY_DISABLED: HomeFunction[] = [];
@@ -53,6 +57,7 @@ const performLogout = () => {
 export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
 	const dark = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
 	const themePreset = useSelector((s: State) => s.config.themePreset);
 	const homePinnedFunctions = useSelector(
 		(s: State) => s.config.homePinnedFunctions,
@@ -62,7 +67,14 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 	);
 	const style = styles(themeName);
 	const theme = themes(themeName);
-	const darkModeHook = Boolean(dark) || themeName === "dark";
+	const darkModeHook = resolveIsDarkMode(colorSchemeMode, dark, themeName);
+	const activeMode = getEffectiveColorSchemeMode(colorSchemeMode, dark);
+	const modeLabel =
+		activeMode === "dark"
+			? getStr("darkModeLabel")
+			: activeMode === "light"
+			? getStr("lightModeLabel")
+			: getStr("followSystemLabel");
 	const {userId, password} = useSelector((s: State) => s.auth);
 	const dispatch = useDispatch();
 	const detailNavigator = useDetailNavigator();
@@ -127,7 +139,7 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 								}}
 							/>
 							<Text style={[style.version, {fontSize: 14, marginRight: 4}]}>
-								{getStr(activePreset.nameKey)}
+								{`${getStr(activePreset.nameKey)} · ${modeLabel}`}
 							</Text>
 							<IconRight height={20} width={20} />
 						</View>

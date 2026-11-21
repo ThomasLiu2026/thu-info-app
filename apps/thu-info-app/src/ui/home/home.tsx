@@ -36,6 +36,7 @@ import IconNetworkOnlineDevices from "../../assets/icons/IconNetworkOnlineDevice
 import IconCalendar from "../../assets/icons/IconCalendar";
 import IconRight from "../../assets/icons/IconRight";
 import themes from "../../assets/themes/themes";
+import {resolveIsDarkMode} from "../../assets/themes/presets";
 import {useDispatch, useSelector} from "react-redux";
 import {currState, helper, State} from "../../redux/store";
 import {top5Update} from "../../redux/slices/top5";
@@ -325,6 +326,7 @@ export const HomeReservationSection = () => {
 	const themeName = useColorScheme();
 	useSelector((s: State) => s.config.themePreset);
 	useSelector((s: State) => s.config.darkMode);
+	useSelector((s: State) => s.config.colorSchemeMode);
 	const style = styles(themeName);
 	const activeLibBookRecords = useSelector(
 		(s: State) => s.reservation.activeLibBookRecords,
@@ -349,10 +351,11 @@ export const HomeReservationSection = () => {
 export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
 	const dark = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
 	const themePreset = useSelector((s: State) => s.config.themePreset);
 	const theme = themes(themeName);
 	const dispatch = useDispatch();
-	const darkModeHook = Boolean(dark) || themeName === "dark";
+	const darkModeHook = resolveIsDarkMode(colorSchemeMode, dark, themeName);
 	const detailNavigator = useDetailNavigator();
 
 	const campusBalance = useSelector((s: State) => s.campusCard.balance ?? 0);

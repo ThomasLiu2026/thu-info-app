@@ -11,6 +11,7 @@ import {
 } from "@react-navigation/native";
 import {Dimensions, StatusBar, useColorScheme} from "react-native";
 import themes from "./assets/themes/themes";
+import {resolveIsDarkMode} from "./assets/themes/presets";
 import {DigitalPasswordScreen} from "./ui/settings/digitalPassword";
 import {Root} from "./components/Root";
 import {SplitViewProvider} from "./components/SplitView";
@@ -19,10 +20,11 @@ import DeviceInfo from "react-native-device-info";
 const RootComponent = () => {
 	const themeName = useColorScheme();
 	const dark = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
 	// Subscribe to themePreset so NavigationContainer & StatusBar update live.
 	useSelector((s: State) => s.config.themePreset);
 	const theme = themes(themeName);
-	const darkModeHook = Boolean(dark) || themeName === "dark";
+	const darkModeHook = resolveIsDarkMode(colorSchemeMode, dark, themeName);
 
 	const appLocked = useSelector((s: State) => s.config.appLocked);
 	const tabletMode = useSelector((s: State) => s.config.tabletMode);

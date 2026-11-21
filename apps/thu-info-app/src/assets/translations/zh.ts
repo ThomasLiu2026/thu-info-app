@@ -745,4 +745,9 @@ export default {
 	themeGraphiteMonoDesc: "纯粹炭黑石墨，极简克制",
 	customVersionLocked: "定制锁版（已永久关闭自动更新与提醒）",
 	itemsCountSuffix: " 项",
+	appearanceMode: "深浅模式",
+	lightModeLabel: "浅色",
+	darkModeLabel: "深色",
+	followSystemLabel: "跟随系统",
+	appearanceModeAllSkinsTip: "对全部主题配色即时生效",
 };

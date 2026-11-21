@@ -19,15 +19,13 @@ export const GeneralScreen = ({navigation}: {navigation: RootNav}) => {
 	const themeName = useColorScheme();
 	useSelector((s: State) => s.config.themePreset);
 	useSelector((s: State) => s.config.darkMode);
+	useSelector((s: State) => s.config.colorSchemeMode);
 	const style = styles(themeName);
 	const {colors} = themes(themeName);
 
-	const darkMode = useSelector((s: State) => s.config.darkMode);
 	const language = useSelector((s: State) => s.config.language);
 	const tabletMode = useSelector((s: State) => s.config.tabletMode);
 	const dispatch = useDispatch();
-
-	const colorString = getStr(darkMode === true ? "enable" : "autoFollow");
 
 	const languageString =
 		language === "zh"
@@ -38,17 +36,6 @@ export const GeneralScreen = ({navigation}: {navigation: RootNav}) => {
 
 	return (
 		<View style={{flex: 1, padding: 12}}>
-			<RoundedView style={style.rounded}>
-				<TouchableOpacity
-					style={style.touchable}
-					onPress={() => navigation.navigate("DarkMode")}>
-					<Text style={style.text}>{getStr("darkMode")}</Text>
-					<View style={{flexDirection: "row", alignItems: "center"}}>
-						<Text style={style.version}>{colorString}</Text>
-						<IconRight height={20} width={20} />
-					</View>
-				</TouchableOpacity>
-			</RoundedView>
 			<RoundedView style={style.rounded}>
 				<TouchableOpacity
 					style={style.touchable}

@@ -4,7 +4,7 @@ import {currState} from "../../redux/store";
 import {enableEasterEgg} from "../../utils/easterEgg";
 import {colorPkuDark} from "../colors/pkuDark";
 import {colorPkuLight} from "../colors/pkuLight";
-import {applyThemePreset} from "./presets";
+import {applyThemePreset, resolveIsDarkMode} from "./presets";
 
 export interface ColorTheme {
 	primaryLight: string;
@@ -51,7 +51,11 @@ export interface Theme {
 
 export default (themeName: string | null | undefined): Theme => {
 	const cfg = currState().config;
-	const isDark = Boolean(cfg.darkMode) || themeName === "dark";
+	const isDark = resolveIsDarkMode(
+		cfg.colorSchemeMode,
+		cfg.darkMode,
+		themeName,
+	);
 	const base = isDark
 		? enableEasterEgg()
 			? colorPkuDark

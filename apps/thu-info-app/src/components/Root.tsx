@@ -119,6 +119,7 @@ const RootTabs = () => {
 	// Subscribe to theme settings so tab tint updates immediately without restart.
 	useSelector((s: State) => s.config.themePreset);
 	useSelector((s: State) => s.config.darkMode);
+	useSelector((s: State) => s.config.colorSchemeMode);
 	const theme = themes(themeName);
 
 	return (

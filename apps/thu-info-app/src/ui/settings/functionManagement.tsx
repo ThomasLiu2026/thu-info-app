@@ -80,6 +80,7 @@ export const FunctionManagementScreen = () => {
 	const themeName = useColorScheme();
 	useSelector((s: State) => s.config.themePreset);
 	useSelector((s: State) => s.config.darkMode);
+	useSelector((s: State) => s.config.colorSchemeMode);
 	const {colors} = themes(themeName);
 	const style = styles(themeName);
 

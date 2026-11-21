@@ -14,7 +14,9 @@ import {
 import {
 	applyThemePreset,
 	DEFAULT_THEME_PRESET,
+	getEffectiveColorSchemeMode,
 	getThemePreset,
+	resolveIsDarkMode,
 	THEME_PRESETS,
 } from "../src/assets/themes/presets";
 import {colorLight} from "../src/assets/colors/light";
@@ -116,6 +118,16 @@ describe("homeOrder", () => {
 			const dark = applyThemePreset(colorDark, preset.id, true);
 			expect(light.heroCardBg).toBe(preset.light.heroCardBg);
 			expect(dark.heroCardBg).toBe(preset.dark.heroCardBg);
+			expect(dark.contentBackground).toBe(preset.dark.contentBackground);
+			expect(dark.themeBackground).not.toBe(light.themeBackground);
 		}
+
+		expect(getEffectiveColorSchemeMode(undefined, false)).toBe("system");
+		expect(getEffectiveColorSchemeMode(undefined, true)).toBe("dark");
+		expect(getEffectiveColorSchemeMode("light", true)).toBe("light");
+		expect(resolveIsDarkMode("system", false, "dark")).toBe(true);
+		expect(resolveIsDarkMode("system", false, "light")).toBe(false);
+		expect(resolveIsDarkMode("light", true, "dark")).toBe(false);
+		expect(resolveIsDarkMode("dark", false, "light")).toBe(true);
 	});
 });

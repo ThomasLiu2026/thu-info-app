@@ -1,6 +1,7 @@
 import {KeyboardAvoidingView, Platform} from "react-native";
 import {useColorScheme} from "react-native";
 import themes from "../../assets/themes/themes";
+import {resolveIsDarkMode} from "../../assets/themes/presets";
 import {WebView} from "react-native-webview";
 import VersionNumber from "react-native-version-number";
 import DeviceInfo from "react-native-device-info";
@@ -9,8 +10,11 @@ import {State} from "../../redux/store";
 
 export const FeishuFeedbackScreen = () => {
 	const themeName = useColorScheme();
-	const {colors} = themes(themeName);
 	const dark = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
+	useSelector((s: State) => s.config.themePreset);
+	const {colors} = themes(themeName);
+	const isDark = resolveIsDarkMode(colorSchemeMode, dark, themeName);
 
 	const osVersion = `${Platform.OS} ${Platform.Version}`;
 
@@ -19,7 +23,7 @@ export const FeishuFeedbackScreen = () => {
 			behavior={Platform.OS === "ios" ? "padding" : "height"}
 			style={{flex: 1}}>
 			<WebView
-				forceDarkOn={dark || themeName === "dark"}
+				forceDarkOn={isDark}
 				style={{
 					backgroundColor: colors.themeBackground,
 					color: colors.text,

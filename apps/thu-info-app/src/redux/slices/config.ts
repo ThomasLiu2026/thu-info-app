@@ -2,7 +2,7 @@ import {createSlice} from "@reduxjs/toolkit";
 import type {PayloadAction} from "@reduxjs/toolkit";
 import {ValidReceiptTypes} from "@thu-info/lib/src/lib/sports";
 import type {HomeFunction} from "../../utils/homeOrder";
-import type {ThemePresetId} from "../../assets/themes/presets";
+import type {ColorSchemeMode, ThemePresetId} from "../../assets/themes/presets";
 import {Semester} from "@thu-info/lib/src/models/schedule/calendar";
 import { v4 as uuidv4 } from "uuid";
 
@@ -16,6 +16,7 @@ export interface ConfigState {
 	nextSemesterIndex: number | undefined;
 	language: string;
 	darkMode: boolean | undefined;
+	colorSchemeMode: ColorSchemeMode | undefined;
 	newGPA: boolean;
 	bx: boolean;
 	reportHidden: string[];
@@ -66,6 +67,7 @@ const initialState: ConfigState = {
 	nextSemesterIndex: undefined,
 	language: "auto",
 	darkMode: false,
+	colorSchemeMode: "system",
 	newGPA: true,
 	bx: false,
 	reportHidden: [],
