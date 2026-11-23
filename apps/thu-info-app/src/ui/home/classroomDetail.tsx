@@ -15,6 +15,7 @@ import IconLeft from "../../assets/icons/IconLeft";
 import IconRight from "../../assets/icons/IconRight";
 import themes from "../../assets/themes/themes";
 import {useColorScheme} from "react-native";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {helper} from "../../redux/store";
 import dayjs from "dayjs";
 import {BottomPopupTriggerView} from "../../components/views";
@@ -90,6 +91,7 @@ export const ClassroomDetailScreen = ({
 
 	const themeName = useColorScheme();
 	const theme = themes(themeName);
+	const insets = useSafeAreaInsets();
 
 	const refresh = () => {
 		setRefreshing(true);
@@ -167,7 +169,12 @@ export const ClassroomDetailScreen = ({
 					marginTop: 12,
 				}}>
 				<TouchableOpacity
-					style={{padding: 2}}
+					style={{
+						minWidth: 44,
+						minHeight: 44,
+						alignItems: "center",
+						justifyContent: "center",
+					}}
 					onPress={() =>
 						setData(([week, day, table]) =>
 							day > 1
@@ -181,6 +188,7 @@ export const ClassroomDetailScreen = ({
 					<IconLeft height={24} width={24} />
 				</TouchableOpacity>
 				<BottomPopupTriggerView
+					style={{minHeight: 44, justifyContent: "center"}}
 					popupTitle={explainWeekAndDay(popupWeek, popupDayOfWeek)}
 					popupContent={
 						<View style={{flexDirection: "row"}}>
@@ -249,7 +257,12 @@ export const ClassroomDetailScreen = ({
 					</Text>
 				</BottomPopupTriggerView>
 				<TouchableOpacity
-					style={{padding: 2}}
+					style={{
+						minWidth: 44,
+						minHeight: 44,
+						alignItems: "center",
+						justifyContent: "center",
+					}}
 					onPress={() =>
 						setData(([week, day, table]) =>
 							day < 7 ? [week, day + 1, table] : [week + 1, 1, table],
@@ -257,6 +270,53 @@ export const ClassroomDetailScreen = ({
 					}>
 					<IconRight height={24} width={24} />
 				</TouchableOpacity>
+			</View>
+			<View
+				style={{
+					flexDirection: "row",
+					justifyContent: "center",
+					alignItems: "center",
+					marginTop: 4,
+					marginBottom: 4,
+				}}>
+				<View
+					style={{
+						flexDirection: "row",
+						alignItems: "center",
+						marginHorizontal: 10,
+					}}>
+					<View
+						style={{
+							width: 10,
+							height: 10,
+							borderRadius: 2,
+							backgroundColor: theme.colors.themeDarkGrey,
+							marginRight: 5,
+						}}
+					/>
+					<Text style={{fontSize: 12, color: theme.colors.fontB2}}>
+						{getStr("classroomStatus")[5]}
+					</Text>
+				</View>
+				<View
+					style={{
+						flexDirection: "row",
+						alignItems: "center",
+						marginHorizontal: 10,
+					}}>
+					<View
+						style={{
+							width: 10,
+							height: 10,
+							borderRadius: 2,
+							backgroundColor: theme.colors.themePurple,
+							marginRight: 5,
+						}}
+					/>
+					<Text style={{fontSize: 12, color: theme.colors.fontB2}}>
+						{getStr("classroomStatus")[0]}
+					</Text>
+				</View>
 			</View>
 			<FlatList
 				refreshControl={
@@ -269,8 +329,9 @@ export const ClassroomDetailScreen = ({
 				}
 				style={{
 					marginHorizontal: 16,
-					marginTop: 27,
+					marginTop: 12,
 				}}
+				contentContainerStyle={{paddingBottom: 24 + insets.bottom}}
 				ListHeaderComponent={
 					<View
 						style={{
@@ -436,20 +497,22 @@ export const ClassroomDetailScreen = ({
 											});
 										}}
 										style={{
-											minWidth: 26,
-											height: 14,
+											minWidth: 32,
+											minHeight: 20,
 											textAlign: "center",
 											color: theme.colors.contentBackground,
 											backgroundColor: theme.colors.fontB1,
-											fontSize: 9,
-											padding: 1,
+											fontSize: 11,
+											paddingHorizontal: 6,
+											paddingVertical: 2,
+											borderRadius: 4,
+											overflow: "hidden",
 										}}>
 										{getStr("classroomStatus")[tipState]}
 									</Text>
 									<View
 										style={{
-											position: "absolute",
-											top: 13,
+											marginTop: -1,
 											width: 0,
 											height: 0,
 											borderLeftWidth: 4,

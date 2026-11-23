@@ -15,7 +15,7 @@ export const colorPkuLight: ColorTheme = {
 	fontB0: "#000000",
 	fontB1: "#333333",
 	fontB2: "#666666",
-	fontB3: "#999999",
+	fontB3: "#6E6A75",
 	statusNormal: "", //TODO
 	statusDisabled: {rgb: "#999999", alpha: 0.3},
 	statusWarning: "#FF3B30",

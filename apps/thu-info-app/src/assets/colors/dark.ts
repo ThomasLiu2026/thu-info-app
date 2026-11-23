@@ -16,7 +16,7 @@ export const colorDark: ColorTheme = {
 	fontB0: "#FFFFFF",
 	fontB1: "#CCCCCC",
 	fontB2: "#999999",
-	fontB3: "#666666",
+	fontB3: "#9B96A6",
 	statusNormal: "", //TODO
 	statusDisabled: {rgb: "#999999", alpha: 0.3},
 	statusWarning: "#FF3B30",

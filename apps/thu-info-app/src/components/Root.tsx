@@ -369,7 +369,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					headerRight: () => (
 						<View style={{flexDirection: "row"}}>
 							<TouchableOpacity
-								style={{paddingHorizontal: 16, marginHorizontal: 4}}
+								style={{
+									minWidth: 44,
+									minHeight: 44,
+									alignItems: "center",
+									justifyContent: "center",
+									marginRight: 6,
+								}}
 								onPress={() => navigation.navigate("LoseCard")}>
 								<IconLoseCard width={24} height={24} />
 							</TouchableOpacity>
@@ -419,7 +425,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					title: getStr("library"),
 					headerRight: () => (
 						<TouchableOpacity
-							style={{paddingHorizontal: 16, marginHorizontal: 4}}
+							style={{
+								minWidth: 44,
+								minHeight: 44,
+								alignItems: "center",
+								justifyContent: "center",
+								marginRight: 6,
+							}}
 							onPress={() => navigation.navigate("LibBookRecord")}>
 							<IconHistory width={24} height={24} />
 						</TouchableOpacity>
@@ -433,7 +445,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					title: route.params.library.zhName,
 					headerRight: () => (
 						<TouchableOpacity
-							style={{paddingHorizontal: 16, marginHorizontal: 4}}
+							style={{
+								minWidth: 44,
+								minHeight: 44,
+								alignItems: "center",
+								justifyContent: "center",
+								marginRight: 6,
+							}}
 							onPress={() => navigation.navigate("LibBookRecord")}>
 							<IconHistory width={24} height={24} />
 						</TouchableOpacity>
@@ -448,7 +466,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					headerRight: () => (
 						<View style={{flexDirection: "row"}}>
 							<TouchableOpacity
-								style={{paddingHorizontal: 8, marginHorizontal: 4}}
+								style={{
+									minWidth: 44,
+									minHeight: 44,
+									alignItems: "center",
+									justifyContent: "center",
+									marginRight: 6,
+								}}
 								onPress={() => navigation.navigate("LibraryMap", route.params)}>
 								<IconLocal width={24} height={24} />
 							</TouchableOpacity>
@@ -464,7 +488,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					headerRight: () => (
 						<View style={{flexDirection: "row"}}>
 							<TouchableOpacity
-								style={{paddingHorizontal: 8, marginHorizontal: 4}}
+								style={{
+									minWidth: 44,
+									minHeight: 44,
+									alignItems: "center",
+									justifyContent: "center",
+									marginRight: 6,
+								}}
 								onPress={() =>
 									navigation.navigate("LibrarySeatMap", route.params)
 								}>
@@ -496,7 +526,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					title: getStr("libRoomBook"),
 					headerRight: () => (
 						<TouchableOpacity
-							style={{paddingHorizontal: 16, marginHorizontal: 4}}
+							style={{
+								minWidth: 44,
+								minHeight: 44,
+								alignItems: "center",
+								justifyContent: "center",
+								marginRight: 6,
+							}}
 							onPress={() => navigation.navigate("LibRoomBookRecord")}>
 							<IconHistory width={24} height={24} />
 						</TouchableOpacity>
@@ -540,7 +576,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					headerRight: () => (
 						<View style={{flexDirection: "row"}}>
 							<TouchableOpacity
-								style={{paddingHorizontal: 16, marginHorizontal: 4}}
+								style={{
+									minWidth: 44,
+									minHeight: 44,
+									alignItems: "center",
+									justifyContent: "center",
+									marginRight: 6,
+								}}
 								onPress={() => {
 									Share.open({
 										url: `data:application/pdf;base64,${base64}`,
@@ -575,7 +617,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					title: getStr("sportsBook"),
 					headerRight: () => (
 						<TouchableOpacity
-							style={{paddingHorizontal: 16, marginHorizontal: 4}}
+							style={{
+								minWidth: 44,
+								minHeight: 44,
+								alignItems: "center",
+								justifyContent: "center",
+								marginRight: 6,
+							}}
 							onPress={() => navigation.navigate("SportsRecord")}>
 							<IconHistory width={24} height={24} />
 						</TouchableOpacity>
@@ -661,7 +709,13 @@ export const Root = ({showRootTabs = true}: {showRootTabs?: boolean}) => {
 					title: getStr("electricity"),
 					headerRight: () => (
 						<TouchableOpacity
-							style={{paddingHorizontal: 16, margin: 4}}
+							style={{
+								minWidth: 44,
+								minHeight: 44,
+								alignItems: "center",
+								justifyContent: "center",
+								marginRight: 6,
+							}}
 							onPress={() => navigation.navigate("EleRecord")}>
 							<IconHistory width={24} height={24} />
 						</TouchableOpacity>

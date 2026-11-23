@@ -42,9 +42,12 @@ export const LibraryMapScreen = ({route}: {route: LibraryMapRouteProp}) => {
 						left: (posX / 100) * width,
 						top:
 							(posY / 100) * width * (9 / 16) + (height - width * (9 / 16)) / 2,
-						backgroundColor: "#cccc",
+						backgroundColor: "rgba(0, 0, 0, 0.72)",
+						borderRadius: 4,
+						paddingHorizontal: 4,
+						paddingVertical: 1,
 					}}>
-					<Text style={{color: "black"}}>{zhName}</Text>
+					<Text style={{color: "#FFFFFF", fontSize: 12}}>{zhName}</Text>
 				</View>
 			))}
 		</View>

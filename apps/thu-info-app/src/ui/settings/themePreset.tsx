@@ -20,6 +20,7 @@ import {State} from "../../redux/store";
 import {configSet} from "../../redux/slices/config";
 import {getStr} from "../../utils/i18n";
 import {RoundedView} from "../../components/views";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 const APPEARANCE_OPTIONS: readonly {
 	mode: ColorSchemeMode;
@@ -39,6 +40,7 @@ export const ThemePresetScreen = () => {
 	const activePreset =
 		useSelector((s: State) => s.config.themePreset) ?? DEFAULT_THEME_PRESET;
 	const {colors} = themes(themeName);
+	const insets = useSafeAreaInsets();
 	const dispatch = useDispatch();
 
 	const handleSelectMode = (mode: ColorSchemeMode) => {
@@ -53,7 +55,7 @@ export const ThemePresetScreen = () => {
 	return (
 		<ScrollView
 			style={{flex: 1, backgroundColor: colors.themeBackground}}
-			contentContainerStyle={{padding: 14, paddingBottom: 36}}>
+			contentContainerStyle={{padding: 14, paddingBottom: 36 + insets.bottom}}>
 			<Text
 				style={{
 					fontSize: 13,
@@ -82,7 +84,7 @@ export const ThemePresetScreen = () => {
 								onPress={() => handleSelectMode(opt.mode)}
 								style={{
 									flex: 1,
-									minHeight: 40,
+									minHeight: 44,
 									borderRadius: 11,
 									borderWidth: 1,
 									borderColor: selected ? colors.primary : colors.softBorder,
@@ -207,7 +209,7 @@ export const ThemePresetScreen = () => {
 										borderWidth: selected ? 0 : 1.5,
 										borderColor: colors.themeGrey,
 										backgroundColor: selected
-											? previewPalette.primary
+											? previewPalette.heroCardBg
 											: "transparent",
 										alignItems: "center",
 										justifyContent: "center",

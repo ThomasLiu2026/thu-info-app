@@ -165,15 +165,28 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 								{getStr("remainder")}
 							</Text>
 							<Text
-								style={{fontSize: 24, fontWeight: "bold", color: colors.text}}>
+								style={{
+									fontSize: 24,
+									fontWeight: "bold",
+									color: colors.text,
+									fontVariant: ["tabular-nums"],
+								}}>
 								￥{balance.toFixed(2)}
 							</Text>
 						</View>
 						<TouchableOpacity
 							disabled={refreshing}
+							accessibilityRole="button"
 							onPress={() => !refreshing && refresh()}
-							style={{position: "absolute", right: 12}}>
-							<IconRefresh width={16} height={16} />
+							style={{
+								position: "absolute",
+								right: 4,
+								minWidth: 44,
+								minHeight: 44,
+								alignItems: "center",
+								justifyContent: "center",
+							}}>
+							<IconRefresh width={18} height={18} />
 						</TouchableOpacity>
 					</View>
 					<TouchableOpacity
@@ -195,7 +208,13 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 								}}>
 								{getStr("yesterdayExpenditure")}
 							</Text>
-							<Text style={{fontSize: 18, color: colors.text, padding: 4}}>
+							<Text
+								style={{
+									fontSize: 18,
+									color: colors.text,
+									padding: 4,
+									fontVariant: ["tabular-nums"],
+								}}>
 								￥{yesterdayExpenditure.toFixed(2)}
 							</Text>
 						</View>
@@ -216,7 +235,13 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 								}}>
 								{getStr("todayExpenditure")}
 							</Text>
-							<Text style={{fontSize: 18, color: colors.text, padding: 4}}>
+							<Text
+								style={{
+									fontSize: 18,
+									color: colors.text,
+									padding: 4,
+									fontVariant: ["tabular-nums"],
+								}}>
 								￥{todayExpenditure.toFixed(2)}
 							</Text>
 						</View>
@@ -239,14 +264,14 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 						style={{
 							flexDirection: "row",
 							alignItems: "center",
-							marginTop: 12,
+							marginTop: 4,
 						}}>
 						<TouchableOpacity
 							style={{
 								flex: 1,
+								minHeight: 44,
 								alignItems: "center",
 								justifyContent: "center",
-								paddingVertical: 4,
 							}}
 							onPress={() => {
 								navigation.navigate("Expenditure", {initialTab: "list"});
@@ -270,9 +295,9 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 						<TouchableOpacity
 							style={{
 								flex: 1,
+								minHeight: 44,
 								alignItems: "center",
 								justifyContent: "center",
-								paddingVertical: 4,
 							}}
 							onPress={() => {
 								navigation.navigate("Expenditure", {initialTab: "analysis"});
@@ -311,14 +336,15 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 								{[10, 50, 100].map((price, index) => (
 									<TouchableOpacity
 										style={{
-											borderRadius: 4,
-											paddingHorizontal: 12,
-											paddingVertical: 4,
+											borderRadius: 6,
+											minHeight: 38,
+											paddingHorizontal: 14,
+											justifyContent: "center",
 											backgroundColor:
 												moneyQuickSelected === price
-													? colors.themePurple
+													? colors.heroCardBg
 													: colors.inputBorder,
-											marginLeft: index === 0 ? 0 : 16,
+											marginLeft: index === 0 ? 0 : 12,
 										}}
 										onPress={() => {
 											setMoneyQuickSelected(price);
@@ -469,13 +495,13 @@ export const CampusCardScreen = ({navigation}: {navigation: RootNav}) => {
 								<TouchableOpacity
 									style={{
 										backgroundColor: valid
-											? colors.themePurple
+											? colors.heroCardBg
 											: colors.themeTransparentPurple,
 										alignItems: "center",
 										justifyContent: "center",
-										paddingVertical: 8,
-										paddingHorizontal: 24,
-										borderRadius: 4,
+										minHeight: 44,
+										paddingHorizontal: 28,
+										borderRadius: 8,
 									}}
 									disabled={!valid || processing}
 									onPress={() => {

@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import {useDispatch, useSelector} from "react-redux";
 import {RouteProp} from "@react-navigation/native";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {getStr} from "../../utils/i18n";
 import themes from "../../assets/themes/themes";
 import {resolveIsDarkMode} from "../../assets/themes/presets";
@@ -214,6 +215,7 @@ export const ExpenditureScreen = ({
 	route?: RouteProp<RootStackParamList, "Expenditure">;
 }) => {
 	const dispatch = useDispatch();
+	const insets = useSafeAreaInsets();
 	const darkModeConfig = useSelector((s: State) => s.config.darkMode);
 	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
 	useSelector((s: State) => s.config.themePreset);
@@ -1624,7 +1626,7 @@ export const ExpenditureScreen = ({
 							</View>
 						);
 					}}
-					contentContainerStyle={{paddingBottom: 24}}
+					contentContainerStyle={{paddingBottom: 24 + insets.bottom}}
 				/>
 			)}
 
@@ -1653,7 +1655,7 @@ export const ExpenditureScreen = ({
 								borderTopRightRadius: 14,
 								paddingHorizontal: 16,
 								paddingTop: 16,
-								paddingBottom: 28,
+								paddingBottom: 24 + insets.bottom,
 							}}>
 							<View
 								style={{
@@ -1670,7 +1672,14 @@ export const ExpenditureScreen = ({
 									}}>
 									{getStr("changeMerchantCategory")}
 								</Text>
-								<TouchableOpacity onPress={() => setEditingItem(undefined)}>
+								<TouchableOpacity
+									style={{
+										minWidth: 48,
+										minHeight: 44,
+										justifyContent: "center",
+										alignItems: "flex-end",
+									}}
+									onPress={() => setEditingItem(undefined)}>
 									<Text style={{color: colors.fontB2, fontSize: 15}}>
 										{getStr("cancel")}
 									</Text>

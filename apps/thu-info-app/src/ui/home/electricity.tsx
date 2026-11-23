@@ -62,7 +62,13 @@ export const ElectricityScreen = () => {
 				<Text style={{color: colors.fontB3, fontSize: 11}}>
 					{getStr("eleRemainder")}
 				</Text>
-				<Text style={{fontSize: 24, fontWeight: "600", color: colors.text}}>
+				<Text
+					style={{
+						fontSize: 24,
+						fontWeight: "600",
+						color: colors.text,
+						fontVariant: ["tabular-nums"],
+					}}>
 					{(() => {
 						switch (remainderStatus) {
 							case "loading":
@@ -79,9 +85,17 @@ export const ElectricityScreen = () => {
 					{updateTimeValue}
 				</Text>
 				<TouchableOpacity
+					accessibilityRole="button"
 					onPress={() => remainderStatus !== "loading" && getRemainder()}
-					style={{position: "absolute", right: 12}}>
-					<IconRefresh width={16} height={16} />
+					style={{
+						position: "absolute",
+						right: 4,
+						minWidth: 44,
+						minHeight: 44,
+						alignItems: "center",
+						justifyContent: "center",
+					}}>
+					<IconRefresh width={18} height={18} />
 				</TouchableOpacity>
 			</RoundedView>
 			{false && (

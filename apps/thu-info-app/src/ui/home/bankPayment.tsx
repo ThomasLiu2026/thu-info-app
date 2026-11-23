@@ -20,6 +20,7 @@ import IconDropdown from "../../assets/icons/IconDropdown";
 import {getStatusBarHeight} from "react-native-safearea-height";
 import IconCheck from "../../assets/icons/IconCheck";
 import {useHeaderHeight} from "@react-navigation/elements";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 export const BankPaymentScreen = () => {
 	const [data, setData] = useState<BankPaymentByMonth[]>([]);
@@ -30,6 +31,7 @@ export const BankPaymentScreen = () => {
 	const [loadPartial, setLoadPartial] = useState(true);
 
 	const headerHeight = useHeaderHeight();
+	const insets = useSafeAreaInsets();
 
 	const themeName = useColorScheme();
 	const {colors} = themes(themeName);
@@ -75,14 +77,16 @@ export const BankPaymentScreen = () => {
 			<View
 				style={{
 					flexDirection: "row",
-					height: 32,
+					minHeight: 44,
 					alignItems: "center",
 					backgroundColor: colors.contentBackground,
 				}}>
 				<TouchableOpacity
 					onPress={() => setModalOpen((v) => !v)}
 					style={{
-						marginLeft: 36,
+						marginLeft: 24,
+						minHeight: 44,
+						paddingHorizontal: 8,
 						flexDirection: "row",
 						alignItems: "center",
 						flex: 0,
@@ -98,7 +102,10 @@ export const BankPaymentScreen = () => {
 						/>
 					</View>
 				</TouchableOpacity>
-				<Modal visible={modalOpen} transparent>
+				<Modal
+					visible={modalOpen}
+					transparent
+					onRequestClose={() => setModalOpen(false)}>
 					<TouchableOpacity
 						style={{
 							width: "100%",
@@ -108,10 +115,10 @@ export const BankPaymentScreen = () => {
 						<View
 							style={{
 								position: "absolute",
-								backgroundColor: colors.text,
-								opacity: 0.3,
+								backgroundColor: "#000000",
+								opacity: 0.45,
 								width: "100%",
-								top: headerHeight - getStatusBarHeight() + 32,
+								top: headerHeight - getStatusBarHeight() + 44,
 								bottom: 0,
 							}}
 						/>
@@ -120,7 +127,7 @@ export const BankPaymentScreen = () => {
 								position: "absolute",
 								backgroundColor: colors.contentBackground,
 								width: "100%",
-								top: headerHeight - getStatusBarHeight() + 32,
+								top: headerHeight - getStatusBarHeight() + 44,
 								borderBottomStartRadius: 12,
 								borderBottomEndRadius: 12,
 							}}>
@@ -137,8 +144,10 @@ export const BankPaymentScreen = () => {
 											}}
 											style={{
 												paddingHorizontal: 16,
-												marginVertical: 8,
+												paddingVertical: 12,
+												minHeight: 44,
 												flexDirection: "row",
+												alignItems: "center",
 												justifyContent: "space-between",
 											}}>
 											<Text style={{color: colors.text, fontSize: 14}}>
@@ -156,6 +165,7 @@ export const BankPaymentScreen = () => {
 			</View>
 			<ScrollView
 				style={{flex: 1, margin: 12, marginTop: 4}}
+				contentContainerStyle={{paddingBottom: 16 + insets.bottom}}
 				refreshControl={
 					<RefreshControl
 						refreshing={refreshing}

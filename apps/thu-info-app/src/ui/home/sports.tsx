@@ -5,12 +5,9 @@ import {
 	useColorScheme,
 	View,
 } from "react-native";
-import {sportsIdInfoList} from "@thu-info/lib/src/lib/sports";
 import themes from "../../assets/themes/themes";
-import {styles} from "../../ui/settings/settings";
 import {RootNav} from "../../components/Root";
 import {RoundedView} from "../../components/views";
-import IconRight from "../../assets/icons/IconRight";
 import {getStr} from "../../utils/i18n";
 import {useSelector} from "react-redux";
 import {State} from "../../redux/store";
@@ -61,6 +58,11 @@ export const SportsReservationCard = () => {
 					</Text>
 					{firstRecord.payId && (
 						<TouchableOpacity
+							style={{
+								minHeight: 44,
+								paddingHorizontal: 16,
+								justifyContent: "center",
+							}}
 							onPress={() =>
 								firstRecord.payId &&
 								navigation.navigate("SportsSelectTitle", {
@@ -78,49 +80,12 @@ export const SportsReservationCard = () => {
 	);
 };
 
-export const SportsScreen = ({navigation}: {navigation: RootNav}) => {
+export const SportsScreen = () => {
 	const themeName = useColorScheme();
 	const {colors} = themes(themeName);
-	const style = styles(themeName);
 
 	return (
 		<ScrollView style={{flex: 1}}>
-			<RoundedView
-				style={{marginHorizontal: 12, marginVertical: 24, padding: 16}}>
-				{([] as typeof sportsIdInfoList).map((info, index) => (
-					<View key={info.name}>
-						{index > 0 && (
-							<View
-								style={[
-									style.separator,
-									{
-										marginHorizontal: 0,
-									},
-								]}
-							/>
-						)}
-						<TouchableOpacity
-							style={{
-								flexDirection: "row",
-								alignItems: "center",
-								justifyContent: "space-between",
-							}}
-							onPress={() => {
-								navigation.navigate("SportsDetail", {info});
-							}}>
-							<Text
-								style={{
-									color: colors.text,
-									fontSize: 16,
-									lineHeight: 24,
-								}}>
-								{info.name}
-							</Text>
-							<IconRight height={24} width={24} />
-						</TouchableOpacity>
-					</View>
-				))}
-			</RoundedView>
 			<View style={{margin: 16}}>
 				<Text
 					style={{

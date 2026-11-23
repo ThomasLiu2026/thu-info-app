@@ -39,6 +39,7 @@ import {
 } from "../../assets/icons/IconGrades";
 import {useHeaderHeight} from "@react-navigation/elements";
 import {getStatusBarHeight} from "react-native-safearea-height";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 export const semesterWeight = (semester: string): number => {
 	const year = Number(semester.slice(0, 4));
@@ -235,6 +236,7 @@ export const ReportScreen = () => {
 	const [mode, setMode] = useState<"split" | "gather">("split");
 
 	const headerHeight = useHeaderHeight();
+	const insets = useSafeAreaInsets();
 
 	const themeName = useColorScheme();
 	const {colors} = themes(themeName);
@@ -277,7 +279,7 @@ export const ReportScreen = () => {
 			<View
 				style={{
 					flexDirection: "row",
-					height: 32,
+					minHeight: 44,
 					alignItems: "center",
 					backgroundColor: colors.contentBackground,
 				}}>
@@ -285,7 +287,9 @@ export const ReportScreen = () => {
 					<TouchableOpacity
 						onPress={() => setOpen((v) => (v === "flag" ? undefined : "flag"))}
 						style={{
-							marginLeft: 36,
+							marginLeft: 24,
+							minHeight: 44,
+							paddingHorizontal: 8,
 							flexDirection: "row",
 							alignItems: "center",
 							flex: 0,
@@ -306,7 +310,9 @@ export const ReportScreen = () => {
 				<TouchableOpacity
 					onPress={() => setOpen((v) => (v === "bx" ? undefined : "bx"))}
 					style={{
-						marginLeft: 32,
+						marginLeft: 20,
+						minHeight: 44,
+						paddingHorizontal: 8,
 						flexDirection: "row",
 						alignItems: "center",
 						flex: 0,
@@ -325,10 +331,20 @@ export const ReportScreen = () => {
 				<View style={{flex: 1}} />
 				<TouchableOpacity
 					onPress={() => setMode((m) => (m === "split" ? "gather" : "split"))}
-					style={{marginRight: 36, padding: 4, alignItems: "center", flex: 0}}>
+					style={{
+						marginRight: 20,
+						minWidth: 44,
+						minHeight: 44,
+						alignItems: "center",
+						justifyContent: "center",
+						flex: 0,
+					}}>
 					<IconExchange height={18} width={18} />
 				</TouchableOpacity>
-				<Modal visible={open !== undefined} transparent>
+				<Modal
+					visible={open !== undefined}
+					transparent
+					onRequestClose={() => setOpen(undefined)}>
 					<TouchableOpacity
 						style={{
 							width: "100%",
@@ -338,10 +354,10 @@ export const ReportScreen = () => {
 						<View
 							style={{
 								position: "absolute",
-								backgroundColor: colors.text,
-								opacity: 0.3,
+								backgroundColor: "#000000",
+								opacity: 0.45,
 								width: "100%",
-								top: headerHeight - getStatusBarHeight() + 32,
+								top: headerHeight - getStatusBarHeight() + 44,
 								bottom: 0,
 							}}
 						/>
@@ -350,7 +366,7 @@ export const ReportScreen = () => {
 								position: "absolute",
 								backgroundColor: colors.contentBackground,
 								width: "100%",
-								top: headerHeight - getStatusBarHeight() + 32,
+								top: headerHeight - getStatusBarHeight() + 44,
 								borderBottomStartRadius: 12,
 								borderBottomEndRadius: 12,
 							}}>
@@ -386,8 +402,10 @@ export const ReportScreen = () => {
 											}}
 											style={{
 												paddingHorizontal: 16,
-												marginVertical: 8,
+												paddingVertical: 12,
+												minHeight: 44,
 												flexDirection: "row",
+												alignItems: "center",
 												justifyContent: "space-between",
 											}}>
 											<Text style={{color: colors.text, fontSize: 14}}>
@@ -405,6 +423,7 @@ export const ReportScreen = () => {
 			</View>
 			<ScrollView
 				style={{marginHorizontal: 12}}
+				contentContainerStyle={{paddingBottom: 16 + insets.bottom}}
 				refreshControl={
 					<RefreshControl
 						refreshing={refreshing}

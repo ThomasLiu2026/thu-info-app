@@ -14,6 +14,7 @@ import {getStr} from "../../utils/i18n";
 import {BlurView} from "@react-native-community/blur";
 import themedStyles from "../../utils/themedStyles";
 import themes from "../../assets/themes/themes";
+import {resolveIsDarkMode} from "../../assets/themes/presets";
 import IconLock from "../../assets/icons/IconLock";
 import IconPerson from "../../assets/icons/IconPerson";
 import IconMain from "../../assets/icons/IconMain";
@@ -37,6 +38,9 @@ export const LoginScreen = ({navigation}: {navigation: RootNav}) => {
 	const [processing, setProcessing] = useState(false);
 
 	const themeName = useColorScheme();
+	const dark = useSelector((s: State) => s.config.darkMode);
+	const colorSchemeMode = useSelector((s: State) => s.config.colorSchemeMode);
+	const isDark = resolveIsDarkMode(colorSchemeMode, dark, themeName);
 	const theme = themes(themeName);
 	const style = styles(themeName);
 
@@ -151,7 +155,7 @@ export const LoginScreen = ({navigation}: {navigation: RootNav}) => {
 				<View style={style.absoluteContainer}>
 					<BlurView
 						style={style.blurViewStyle}
-						blurType="light"
+						blurType={isDark ? "dark" : "light"}
 						blurAmount={10}
 					/>
 					<ActivityIndicator size="large" color={theme.colors.primary} />
@@ -203,14 +207,15 @@ const styles = themedStyles((theme) => {
 		},
 
 		loginButtonStyle: {
-			height: 35,
-			width: 100,
-			backgroundColor: theme.colors.themePurple,
+			minHeight: 44,
+			minWidth: 120,
+			paddingHorizontal: 20,
+			backgroundColor: theme.colors.heroCardBg,
 			marginTop: 20,
 			marginBottom: 20,
 			justifyContent: "center",
 			alignItems: "center",
-			borderRadius: 8,
+			borderRadius: 10,
 		},
 
 		loginButtonTextStyle: {

@@ -10,6 +10,7 @@ import {
 	NavigationIndependentTree,
 } from "@react-navigation/native";
 import {Dimensions, StatusBar, useColorScheme} from "react-native";
+import {SafeAreaProvider} from "react-native-safe-area-context";
 import themes from "./assets/themes/themes";
 import {resolveIsDarkMode} from "./assets/themes/presets";
 import {DigitalPasswordScreen} from "./ui/settings/digitalPassword";
@@ -84,7 +85,7 @@ const RootComponent = () => {
 									background: theme.colors.themeBackground,
 									card: theme.colors.contentBackground,
 									border: darkModeHook
-										? "white"
+										? "#2A2A2A"
 										: DefaultTheme.colors.border,
 								},
 							}}>
@@ -99,10 +100,12 @@ const RootComponent = () => {
 
 export const App = () => {
 	return (
-		<Provider store={store}>
-			<PersistGate persistor={persistor}>
-				<RootComponent />
-			</PersistGate>
-		</Provider>
+		<SafeAreaProvider>
+			<Provider store={store}>
+				<PersistGate persistor={persistor}>
+					<RootComponent />
+				</PersistGate>
+			</Provider>
+		</SafeAreaProvider>
 	);
 };

@@ -6,13 +6,21 @@ import {
 	Modal,
 	Platform,
 	Pressable,
+	RefreshControl,
 	ScrollView,
 	Text,
 	TouchableOpacity,
 	useColorScheme,
 	View,
 } from "react-native";
-import {ReactElement, useEffect, useMemo, useRef, useState} from "react";
+import {
+	ReactElement,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {RootNav, RootStackParamList} from "../../components/Root";
 import IconReport from "../../assets/icons/IconReport";
 import IconExpenditure from "../../assets/icons/IconExpenditure";
@@ -49,7 +57,7 @@ import {configSet} from "../../redux/slices/config";
 import {addUsageStat, FunctionType} from "../../utils/webApi";
 import {StackActions} from "@react-navigation/native";
 import {setCrTimetable} from "../../redux/slices/timetable";
-import {getStatusBarHeight} from "react-native-safearea-height";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {setBalance} from "../../redux/slices/campusCard";
 import VersionNumber from "react-native-version-number";
 import Svg, {Path} from "react-native-svg";
@@ -549,7 +557,35 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	const statusTop = getStatusBarHeight();
+	const insets = useSafeAreaInsets();
+	const statusTop = insets.top;
+	const [refreshing, setRefreshing] = useState(false);
+
+	const handleRefresh = useCallback(() => {
+		if (Platform.OS !== "ios" && Platform.OS !== "android") {
+			return;
+		}
+		setRefreshing(true);
+		helper
+			.appStartUp(Platform.OS, currState().config.uuid, VersionNumber.appVersion)
+			.then(
+				({
+					bookingRecords,
+					sportsReservationRecords,
+					crTimetable,
+					balance,
+				}) => {
+					dispatch(setActiveLibBookRecord(bookingRecords));
+					dispatch(setActiveSportsReservationRecord(sportsReservationRecords));
+					dispatch(setCrTimetable(crTimetable));
+					dispatch(setBalance(balance));
+				},
+			)
+			.catch(() => {})
+			.finally(() => {
+				setRefreshing(false);
+			});
+	}, [dispatch]);
 
 	return (
 		<View
@@ -600,10 +636,18 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 
 			<ScrollView
 				style={{flex: 1}}
+				refreshControl={
+					<RefreshControl
+						refreshing={refreshing}
+						onRefresh={handleRefresh}
+						colors={[theme.colors.accent]}
+						progressBackgroundColor={theme.colors.contentBackground}
+					/>
+				}
 				contentContainerStyle={{
 					paddingHorizontal: 16,
 					paddingTop: 6,
-					paddingBottom: 28,
+					paddingBottom: 28 + insets.bottom,
 				}}
 				key={`${String(darkModeHook)}-${String(themePreset)}`}>
 				{/* Campus Card Hero Card */}
@@ -679,7 +723,7 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 								onPress={openCampusExpenditure}
 								style={{
 									flex: 1,
-									minHeight: 42,
+									minHeight: 46,
 									borderRadius: 12,
 									backgroundColor: "#FFFFFF",
 									alignItems: "center",
@@ -700,7 +744,7 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 								onPress={openCampusCard}
 								style={{
 									flex: 1,
-									minHeight: 42,
+									minHeight: 46,
 									borderRadius: 12,
 									borderWidth: 1,
 									borderColor: "rgba(255,255,255,0.36)",
@@ -881,7 +925,7 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 							backgroundColor: theme.colors.contentBackground,
 							paddingTop: statusTop + 14,
 							paddingHorizontal: 16,
-							paddingBottom: 22,
+							paddingBottom: 22 + insets.bottom,
 							transform: [{translateX: slideAnim}],
 							...Platform.select({
 								ios: {
@@ -922,11 +966,13 @@ export const HomeScreen = ({navigation}: {navigation: RootNav}) => {
 							</View>
 							<TouchableOpacity
 								activeOpacity={0.75}
+								accessibilityRole="button"
+								accessibilityLabel={getStr("cancel")}
 								onPress={() => closeDrawer()}
 								style={{
-									width: 38,
-									height: 38,
-									borderRadius: 11,
+									width: 44,
+									height: 44,
+									borderRadius: 12,
 									backgroundColor: theme.colors.themeBackground,
 									borderWidth: 1,
 									borderColor: theme.colors.softBorder,

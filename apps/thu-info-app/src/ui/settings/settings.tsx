@@ -279,12 +279,15 @@ export const SettingsScreen = ({navigation}: {navigation: RootNav}) => {
 export const styles = themedStyles(({colors}) => ({
 	rounded: {
 		marginTop: 16,
+		paddingVertical: 4,
 	},
 	touchable: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		paddingHorizontal: 16,
+		paddingVertical: 12,
+		minHeight: 48,
 	},
 	text: {
 		color: colors.text,
@@ -297,7 +300,7 @@ export const styles = themedStyles(({colors}) => ({
 	separator: {
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: colors.themeGrey,
-		marginVertical: 12,
+		marginVertical: 0,
 		marginHorizontal: 16,
 	},
 }));

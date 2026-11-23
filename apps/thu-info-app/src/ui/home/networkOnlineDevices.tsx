@@ -17,6 +17,7 @@ import {
 import themes from "../../assets/themes/themes";
 import { RoundedView } from "../../components/views";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "../settings/settings";
 import { UseregAuthError } from "@thu-info/lib/src/utils/error.ts";
 import { NetworkRetry } from "../../components/easySnackbars.ts";
@@ -72,6 +73,7 @@ const DeviceCard = ({ device, refresh }: { device: Device; refresh: Function }) 
 					style={{
 						...styles(themeName).separator,
 						marginHorizontal: 0,
+						marginVertical: 8,
 					}}
 				/>
 				<Item left={getStr("ip6")} right={device.ip6} />
@@ -130,6 +132,7 @@ export const NetworkOnlineDevicesScreen = ({navigation}: {navigation: RootNav}) 
 	const [importIp, setImportIp] = useState("");
 
 	const headerHeight = useHeaderHeight();
+	const insets = useSafeAreaInsets();
 
 	const refresh = () => {
 		helper
@@ -187,6 +190,7 @@ export const NetworkOnlineDevicesScreen = ({navigation}: {navigation: RootNav}) 
 						flexDirection: "row",
 						backgroundColor: colors.contentBackground,
 						columnGap: 16,
+						paddingBottom: insets.bottom,
 					}}>
 					<View style={{ flex: 1, flexDirection: "row", paddingStart: 16 }}>
 						<Text
@@ -228,11 +232,13 @@ export const NetworkOnlineDevicesScreen = ({navigation}: {navigation: RootNav}) 
 							flexDirection: "row",
 							alignItems: "center",
 							padding: 4,
-							backgroundColor: colors.themePurple,
+							backgroundColor: colors.heroCardBg,
 						}}>
 						<TouchableOpacity
 							style={{
-								padding: 8,
+								minHeight: 44,
+								paddingHorizontal: 12,
+								justifyContent: "center",
 							}}
 							onPress={() => {
 								if (importIp === "") {

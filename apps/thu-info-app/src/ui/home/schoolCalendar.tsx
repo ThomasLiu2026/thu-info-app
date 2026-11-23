@@ -1,6 +1,12 @@
-import {Text, useColorScheme, View} from "react-native";
+import {
+	ActivityIndicator,
+	Text,
+	TouchableOpacity,
+	useColorScheme,
+	View,
+} from "react-native";
 import {helper, State} from "../../redux/store";
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import themes from "../../assets/themes/themes";
 import {getStr} from "../../utils/i18n";
 import {BottomPopupTriggerView, RoundedView} from "../../components/views";
@@ -9,6 +15,7 @@ import ScrollPicker from "react-native-wheel-scrollview-picker";
 import ImageViewer from "react-native-image-zoom-viewer";
 import {saveImg} from "../../utils/saveImg";
 import {useSelector} from "react-redux";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 export const SchoolCalendar = () => {
 	const semesterDescription = useSelector(
@@ -34,26 +41,72 @@ export const SchoolCalendar = () => {
 	const appLang = getStr("mark") === "CH" ? "zh" : "en";
 	const [lang, setLang] = useState(appLang as "zh" | "en");
 	const [error, setError] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [reloadKey, setReloadKey] = useState(0);
 
 	const themeName = useColorScheme();
 	const {colors} = themes(themeName);
+	const insets = useSafeAreaInsets();
 
 	useEffect(() => {
-		helper.getCalendarYear().then((r) => {
-			setLatestYear(r + 1);
-		});
+		let cancelled = false;
+		helper
+			.getCalendarYear()
+			.then((r) => {
+				if (!cancelled) {
+					setLatestYear(r + 1);
+				}
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
-	if (!error) {
-		helper.getCalendarImageUrl(year - 1, semester, lang).then((r) => {
-			setSrc(r);
-		});
-	}
+	useEffect(() => {
+		let cancelled = false;
+		setLoading(true);
+		setError(false);
+		helper
+			.getCalendarImageUrl(year - 1, semester, lang)
+			.then((r) => {
+				if (!cancelled) {
+					setSrc(r);
+					setLoading(false);
+				}
+			})
+			.catch(() => {
+				if (!cancelled) {
+					setError(true);
+					setLoading(false);
+				}
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [year, semester, lang, reloadKey]);
 
 	return (
-		<View style={{flex: 1, padding: 16}}>
+		<View style={{flex: 1, padding: 16, paddingBottom: 16 + insets.bottom}}>
 			<RoundedView style={{marginVertical: 16, flex: 1}}>
-				{src !== "" && !error && (
+				{loading ? (
+					<View style={{flex: 1, alignItems: "center", justifyContent: "center"}}>
+						<ActivityIndicator size="large" color={colors.primary} />
+					</View>
+				) : error ? (
+					<TouchableOpacity
+						style={{
+							flex: 1,
+							alignItems: "center",
+							justifyContent: "center",
+							padding: 24,
+						}}
+						onPress={() => setReloadKey((k) => k + 1)}>
+						<Text style={{color: colors.fontB2, fontSize: 15}}>
+							{getStr("loadFail")}
+						</Text>
+					</TouchableOpacity>
+				) : src !== "" ? (
 					<ImageViewer
 						imageUrls={[{url: src}]}
 						style={{marginHorizontal: 10, borderRadius: 8}}
@@ -65,7 +118,7 @@ export const SchoolCalendar = () => {
 						}}
 						renderIndicator={() => <View />}
 					/>
-				)}
+				) : null}
 			</RoundedView>
 
 			<RoundedView style={{padding: 16, marginVertical: 16}}>
